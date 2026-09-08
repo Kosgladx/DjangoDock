@@ -14,6 +14,7 @@ services:
     ports:                       #add line.
       - '5432'
     volumes:
+      - ./init-scripts:/docker-entrypoint-initdb.d
       - postgres_data:/var/lib/postgresql
     environment:           # add line.
       - POSTGRES_DB=postgres
