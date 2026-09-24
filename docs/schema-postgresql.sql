@@ -89,42 +89,55 @@ CREATE TABLE professor_disponibilidade (
 );
 
 -- ============================================================
--- Aula (fusão de Alocação + Horário)
--- ============================================================
--- Decisão de modelagem: cada linha já nasce representando UMA aula
--- da semana (não um resumo de carga horária). O coordenador, ao
--- definir que uma disciplina tem N aulas/semana para uma turma,
--- insere N linhas com slot_id NULL. O solver preenche slot_id.
---
--- Isso elimina duas fontes de verdade que existiam antes
--- (carga_horaria vs. contagem de linhas em Horario) e elimina a
--- necessidade do trigger de sincronização de professor_id/turma_id
--- — professor_id e turma_id agora são atributos nativos da linha,
--- não denormalização.
---
--- "Carga horária" deixa de ser um campo armazenado: é derivada por
--- COUNT(*) agrupando por turma_id + disciplina_id.
---
--- NULL em slot_id é o estado "ainda não alocado pelo solver". As
--- constraints UNIQUE abaixo não conflitam entre linhas com slot_id
--- NULL (comportamento padrão do Postgres: NULL nunca é igual a
--- NULL em UNIQUE), então múltiplas aulas pendentes coexistem sem
--- problema até o solver rodar.
---
--- Pressuposto assumido (não garantido por constraint, é
--- responsabilidade da aplicação ao inserir o lote de aulas): todas
--- as linhas de uma mesma combinação turma_id + disciplina_id devem
--- compartilhar o mesmo professor_id.
+-- Grade Horária (Versionamento e Execuções do Solver)
 -- ============================================================
 
-CREATE TABLE aula (
-    id               SERIAL PRIMARY KEY,
-    turma_id         INT NOT NULL REFERENCES turma(id) ON DELETE CASCADE,
-    disciplina_id    INT NOT NULL REFERENCES disciplina(id) ON DELETE CASCADE,
-    professor_id     INT NOT NULL REFERENCES professor(id) ON DELETE CASCADE,
-    slot_id          INT REFERENCES slot(id) ON DELETE SET NULL,
-    UNIQUE (professor_id, slot_id),  -- garante restrição forte 1 (professor) no nível do banco
-    UNIQUE (turma_id, slot_id)       -- garante restrição forte 3 (turma) no nível do banco
+CREATE TABLE grade_horaria (
+    id                       SERIAL PRIMARY KEY,
+    nome                     VARCHAR(100) NOT NULL DEFAULT 'Grade Horária Oficial',
+    semestre                 VARCHAR(20) NOT NULL DEFAULT '1º Semestre',
+    ativa                    BOOLEAN NOT NULL DEFAULT TRUE,
+    score_viabilidade        FLOAT NOT NULL DEFAULT 100.0,
+    violacoes_hard           INT NOT NULL DEFAULT 0,
+    penalidades_soft         FLOAT NOT NULL DEFAULT 0.0,
+    tempo_execucao_segundos  FLOAT NOT NULL DEFAULT 0.0,
+    algoritmo_utilizado      VARCHAR(100) NOT NULL DEFAULT 'Meta-heurística Construtiva Gulosa + Busca Local',
+    criada_em                TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================================
+-- Demanda Curricular (INPUT do coordenador — Decisão 006)
+-- Define a quantidade de aulas semanais de cada disciplina para a turma
+-- ============================================================
+
+CREATE TABLE demanda_curricular (
+    id                      SERIAL PRIMARY KEY,
+    turma_id                INT NOT NULL REFERENCES turma(id) ON DELETE CASCADE,
+    disciplina_id           INT NOT NULL REFERENCES disciplina(id) ON DELETE CASCADE,
+    professor_id            INT NOT NULL REFERENCES professor(id) ON DELETE CASCADE,
+    aulas_semanais          INT NOT NULL CHECK (aulas_semanais > 0),
+    permite_geminada        BOOLEAN NOT NULL DEFAULT TRUE,
+    UNIQUE (turma_id, disciplina_id)
+);
+
+-- ============================================================
+-- Alocação de Horário (OUTPUT do solver na grade — Decisão 006)
+-- Representa as células preenchidas da grade semanal
+-- ============================================================
+
+CREATE TABLE alocacao_horario (
+    id                  SERIAL PRIMARY KEY,
+    grade_horaria_id    INT NOT NULL REFERENCES grade_horaria(id) ON DELETE CASCADE,
+    turma_id            INT NOT NULL REFERENCES turma(id) ON DELETE CASCADE,
+    slot_id             INT NOT NULL REFERENCES slot(id) ON DELETE CASCADE,
+    disciplina_id       INT NOT NULL REFERENCES disciplina(id) ON DELETE CASCADE,
+    professor_id        INT NOT NULL REFERENCES professor(id) ON DELETE CASCADE,
+    sobrescrita_manual  BOOLEAN NOT NULL DEFAULT FALSE,
+    tem_conflito        BOOLEAN NOT NULL DEFAULT FALSE,
+    tipo_conflito       VARCHAR(50),
+    mensagem_conflito   VARCHAR(255),
+    UNIQUE (grade_horaria_id, turma_id, slot_id),      -- Garante restrição forte 3 (sem choque de turma)
+    UNIQUE (grade_horaria_id, professor_id, slot_id)  -- Garante restrição forte 1 (sem choque de professor)
 );
 
 -- ============================================================
@@ -132,8 +145,11 @@ CREATE TABLE aula (
 -- ============================================================
 
 CREATE INDEX idx_turma_curso ON turma(curso_id);
-CREATE INDEX idx_aula_turma ON aula(turma_id);
-CREATE INDEX idx_aula_disciplina ON aula(disciplina_id);
-CREATE INDEX idx_aula_professor ON aula(professor_id);
-CREATE INDEX idx_aula_slot ON aula(slot_id);
+CREATE INDEX idx_demanda_turma ON demanda_curricular(turma_id);
+CREATE INDEX idx_demanda_professor ON demanda_curricular(professor_id);
+CREATE INDEX idx_alocacao_grade ON alocacao_horario(grade_horaria_id);
+CREATE INDEX idx_alocacao_turma ON alocacao_horario(turma_id);
+CREATE INDEX idx_alocacao_professor ON alocacao_horario(professor_id);
+CREATE INDEX idx_alocacao_slot ON alocacao_horario(slot_id);
 CREATE INDEX idx_disponibilidade_professor ON professor_disponibilidade(professor_id);
+

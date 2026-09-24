@@ -48,7 +48,7 @@
 
 **Pressuposto assumido, não garantido por constraint:** todas as linhas de uma mesma combinação `turma_id` + `disciplina_id` devem compartilhar o mesmo `professor_id`. É responsabilidade da aplicação garantir isso ao inserir o lote de aulas (o coordenador aloca um professor por vez para uma disciplina/turma, gerando todas as N linhas daquela alocação de uma vez).
 
-**Status:** **decisão vigente.**
+**Status:** **superada pela Decisão 006.**
 
 ---
 
@@ -109,6 +109,25 @@ Essa complexidade resultou na rejeição do MILP em favor de Meta-heurísticas d
 **Trade-off aceito:** Simplificação radical e coerência do domínio atual (foco estrito no conflito professor/turma/horário), ao custo de precisar recriar a entidade sala no futuro quando a extensão de TCC for iniciada.
 
 **Status:** **decisão vigente.**
+
+---
+
+## Decisão 006 — Segregação entre Demanda Curricular (Input) e Alocação na Grade (Output)
+
+**Contexto:** A Decisão 003 propôs a fusão das entidades de alocação e horário numa única tabela `Aula`, na qual cada aula semanal nascia com `slot_id` nulo e era preenchida pelo solver. Embora conceitualmente compacta, essa abordagem gerou complexidade operacional na API REST e no frontend: misturava a intenção de cadastro do coordenador (que define de forma agregada que uma disciplina tem 4 aulas/semana para uma turma) com as células individuais da grade horária resolvida. A proliferação de linhas com `slot_id = NULL` exigia queries de agrupamento contínuas na aplicação web para exibir o painel de distribuição de carga horária e dificultava o versionamento de grades horárias alternativas.
+
+**Decisão tomada:** Adotar a segregação de responsabilidades entre entrada de dados e saída gerada pelo solver por meio de duas entidades complementares:
+1. `CurriculumRequirement` (`demanda_curricular`): Entidade de **input**, onde o coordenador cadastra a carga horária semanal combinando turma, disciplina, professor e permissão de geminação (`double_lessons_allowed`).
+2. `TimetableSlotAssignment` (`alocacao_horario`): Entidade de **output**, vinculada a uma versão da grade (`TimetableSchedule`), onde cada registro representa uma célula preenchida da matriz semanal (`turma`, `dia_semana`, `slot`, `disciplina`, `professor`).
+- A tabela `alocacao_horario` conta com constraints `UNIQUE (grade_horaria_id, turma_id, slot_id)` e `UNIQUE (grade_horaria_id, professor_id, slot_id)` no banco, garantindo que nem turmas nem professores tenham choques no mesmo slot.
+
+**Alternativas consideradas:**
+- Manter tabela única `Aula` com `slot_id = NULL` (Decisão 003): superada devido ao alto custo de refatoração no frontend React, necessidade de queries de agregação artificiais na interface de cadastro e mistura de ciclo de vida entre intenção curricular e grade gerada.
+
+**Trade-off aceito:** Reintroduz-se duas tabelas no domínio em troca de clareza semântica na API REST, alinhamento direto com os wireframes da interface de usuário, suporte nativo a versionamento de grades (`TimetableSchedule` com scores de viabilidade) e manutenção íntegra do frontend já desenvolvido.
+
+**Status:** **decisão vigente (supera a Decisão 003).**
+
 
 ---
 
