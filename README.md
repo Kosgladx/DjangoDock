@@ -118,6 +118,8 @@ O solver reside no módulo `backend/solver/` e opera em duas etapas:
 
 Toda a fundamentação teórica, modelagem conceitual e registro histórico de engenharia do projeto estão versionados na pasta `docs/`:
 
+* **[Gestão Ágil e Sprints Semanais](docs/sprints/README.md):** Índice de sprints com detalhamento de tarefas semanais e responsabilidades ([Sprint 01](docs/sprints/sprint-01.md)).
+* **[Relatórios Mensais de Evolução](docs/relatorios-mensais/README.md):** Histórico formal de acompanhamento acadêmico e progresso consolidado ([Setembro/2026](docs/relatorios-mensais/relatorio-mensal-setembro-2026.md)).
 * **[Guia de Onboarding da Equipe (SETUP_EQUIPE.md)](SETUP_EQUIPE.md):** Manual rápido de setup em 1-clique, comandos do `seed_data.py`, catálogo de professores/matérias e FAQ de desenvolvimento.
 * **[Guia Didático de Git e Fluxo de Trabalho](docs/guia-git-fluxo-trabalho.md):** Manual passo a passo do GitHub Flow, receita de bolo para criar branches e Pull Requests, e checklist da Homologação Semanal.
 * **[Arquitetura de Software e Ambientes](docs/arquitetura-software.md):** Visão completa das 3 camadas (Frontend, Backend, Solver) e estratégia de ambientes híbridos (SQLite Local vs. PostgreSQL Docker).
