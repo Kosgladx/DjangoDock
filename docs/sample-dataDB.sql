@@ -287,177 +287,117 @@ VALUES
 (8,37), (8,38), (8,39), (8,40),
 (8,45), (8,46), (8,47), (8,48);
 
-
 -- ============================================================
--- 10. ALOCAÇÕES
+-- 10. AULAS (fusão de Alocação + Horário)
 -- ============================================================
--- carga_horaria = quantidade de aulas por semana.
+-- Cada linha representa UMA aula da semana. Uma disciplina com
+-- carga horária de 2 aulas/semana para uma turma gera 2 linhas
+-- aqui, com o MESMO turma_id + disciplina_id + professor_id,
+-- diferindo apenas no slot_id.
 --
--- Todas respeitam professor_disciplina.
+-- "Carga horária" de uma alocação = COUNT(*) agrupando por
+-- turma_id + disciplina_id (ver query de verificação na seção 11).
+--
+-- Todas respeitam professor_disciplina e professor_disponibilidade.
 -- ============================================================
 
-INSERT INTO alocacao
-    (turma_id, disciplina_id, professor_id, carga_horaria)
+INSERT INTO aula
+    (turma_id, disciplina_id, professor_id, slot_id)
 VALUES
 
 -- ------------------------------------------------------------
 -- Turma 1 - Ciência da Computação - 1º período - manhã
 -- ------------------------------------------------------------
-(1, 1, 1, 2), -- Algoritmos / Ana
-(1, 7, 3, 2), -- Matemática Discreta / Carla
-(1, 8, 1, 2), -- POO / Ana
+-- Algoritmos / Ana
+(1, 1, 1, 1),   -- segunda 07:30
+(1, 1, 1, 2),   -- segunda 08:20
+
+-- Matemática Discreta / Carla
+(1, 7, 3, 15),  -- terça 09:20
+(1, 7, 3, 16),  -- terça 10:10
+
+-- POO / Ana
+(1, 8, 1, 25),  -- quarta 07:30
+(1, 8, 1, 26),  -- quarta 08:20
 
 -- ------------------------------------------------------------
 -- Turma 2 - Ciência da Computação - 3º período - tarde
 -- ------------------------------------------------------------
-(2, 2, 2, 2), -- Banco de Dados / Bruno
-(2, 5, 4, 2), -- Redes / Daniel
-(2, 3, 6, 2), -- Engenharia de Software / Fernanda
+-- Banco de Dados / Bruno
+(2, 2, 2, 17),  -- terça 13:00
+(2, 2, 2, 18),  -- terça 13:50
+
+-- Redes / Daniel
+(2, 5, 4, 29),  -- quarta 13:00
+(2, 5, 4, 30),  -- quarta 13:50
+
+-- Engenharia de Software / Fernanda
+(2, 3, 6, 5),   -- segunda 13:00
+(2, 3, 6, 6),   -- segunda 13:50
 
 -- ------------------------------------------------------------
 -- Turma 3 - Sistemas de Informação - 1º período - noite
 -- ------------------------------------------------------------
-(3, 2, 7, 2), -- Banco de Dados / Gabriel
-(3, 8, 5, 2), -- POO / Eduardo
-(3, 7, 8, 2), -- Matemática Discreta / Helena
+-- Banco de Dados / Gabriel
+(3, 2, 7, 9),   -- segunda 18:30
+(3, 2, 7, 10),  -- segunda 19:20
+
+-- POO / Eduardo
+(3, 8, 5, 21),  -- terça 18:30
+(3, 8, 5, 22),  -- terça 19:20
+
+-- Matemática Discreta / Helena
+(3, 7, 8, 45),  -- quinta 18:30
+(3, 7, 8, 46),  -- quinta 19:20
 
 -- ------------------------------------------------------------
 -- Turma 4 - Sistemas de Informação - 3º período - noite
 -- ------------------------------------------------------------
-(4, 6, 7, 2),  -- Sistemas Operacionais / Gabriel
-(4, 9, 5, 2),  -- Desenvolvimento Web / Eduardo
-(4, 10, 6, 2), -- IHC / Fernanda
+-- Sistemas Operacionais / Gabriel
+(4, 6, 7, 23),  -- terça 20:20
+(4, 6, 7, 24),  -- terça 21:10
+
+-- Desenvolvimento Web / Eduardo
+(4, 9, 5, 33),  -- quarta 18:30
+(4, 9, 5, 34),  -- quarta 19:20
+
+-- IHC / Fernanda
+(4, 10, 6, 57), -- sexta 18:30
+(4, 10, 6, 58), -- sexta 19:20
 
 -- ------------------------------------------------------------
 -- Turma 5 - ADS - 1º período - manhã
 -- ------------------------------------------------------------
-(5, 1, 1, 2), -- Algoritmos / Ana
-(5, 7, 3, 2), -- Matemática Discreta / Carla
-(5, 4, 8, 2), -- Estrutura de Dados / Helena
+-- Algoritmos / Ana
+(5, 1, 1, 13),  -- terça 07:30
+(5, 1, 1, 14),  -- terça 08:20
+
+-- Matemática Discreta / Carla
+(5, 7, 3, 49),  -- sexta 07:30
+(5, 7, 3, 50),  -- sexta 08:20
+
+-- Estrutura de Dados / Helena
+(5, 4, 8, 37),  -- quinta 07:30
+(5, 4, 8, 38),  -- quinta 08:20
 
 -- ------------------------------------------------------------
 -- Turma 6 - ADS - 3º período - noite
 -- ------------------------------------------------------------
-(6, 2, 7, 2),  -- Banco de Dados / Gabriel
-(6, 9, 5, 2),  -- Desenvolvimento Web / Eduardo
-(6, 10, 6, 2); -- IHC / Fernanda
-
-
--- ============================================================
--- 11. HORÁRIO GERADO
--- ============================================================
--- professor_id NÃO é informado.
---
--- O trigger trg_sync_professor_horario busca automaticamente
--- o professor correspondente na tabela alocacao.
--- ============================================================
-
-INSERT INTO horario (alocacao_id, slot_id) VALUES
-
--- ============================================================
--- TURMA 1 - CC 1º período - MANHÃ
--- ============================================================
-
--- Algoritmos / Ana
-(1, 1),   -- segunda 07:30
-(1, 2),   -- segunda 08:20
-
--- Matemática Discreta / Carla
-(2, 15),  -- terça 09:20
-(2, 16),  -- terça 10:10
-
--- POO / Ana
-(3, 25),  -- quarta 07:30
-(3, 26),  -- quarta 08:20
-
-
--- ============================================================
--- TURMA 2 - CC 3º período - TARDE
--- ============================================================
-
--- Banco de Dados / Bruno
-(4, 17),  -- terça 13:00
-(4, 18),  -- terça 13:50
-
--- Redes / Daniel
-(5, 29),  -- quarta 13:00
-(5, 30),  -- quarta 13:50
-
--- Engenharia de Software / Fernanda
-(6, 5),   -- segunda 13:00
-(6, 6),   -- segunda 13:50
-
-
--- ============================================================
--- TURMA 3 - SI 1º período - NOITE
--- ============================================================
-
 -- Banco de Dados / Gabriel
-(7, 9),   -- segunda 18:30
-(7, 10),  -- segunda 19:20
-
--- POO / Eduardo
-(8, 21),  -- terça 18:30
-(8, 22),  -- terça 19:20
-
--- Matemática Discreta / Helena
-(9, 45),  -- quinta 18:30
-(9, 46),  -- quinta 19:20
-
-
--- ============================================================
--- TURMA 4 - SI 3º período - NOITE
--- ============================================================
-
--- Sistemas Operacionais / Gabriel
-(10, 23), -- terça 20:20
-(10, 24), -- terça 21:10
+(6, 2, 7, 57),  -- sexta 18:30
+(6, 2, 7, 58),  -- sexta 19:20
 
 -- Desenvolvimento Web / Eduardo
-(11, 33), -- quarta 18:30
-(11, 34), -- quarta 19:20
+(6, 9, 5, 45),  -- quinta 18:30
+(6, 9, 5, 46),  -- quinta 19:20
 
 -- IHC / Fernanda
-(12, 57), -- sexta 18:30
-(12, 58), -- sexta 19:20
+(6, 10, 6, 33), -- quarta 18:30
+(6, 10, 6, 34); -- quarta 19:20
 
 
 -- ============================================================
--- TURMA 5 - ADS 1º período - MANHÃ
--- ============================================================
-
--- Algoritmos / Ana
-(13, 13), -- terça 07:30
-(13, 14), -- terça 08:20
-
--- Matemática Discreta / Carla
-(14, 49), -- sexta 07:30
-(14, 50), -- sexta 08:20
-
--- Estrutura de Dados / Helena
-(15, 37), -- quinta 07:30
-(15, 38), -- quinta 08:20
-
-
--- ============================================================
--- TURMA 6 - ADS 3º período - NOITE
--- ============================================================
-
--- Banco de Dados / Gabriel
-(16, 57), -- sexta 18:30
-(16, 58), -- sexta 19:20
-
--- Desenvolvimento Web / Eduardo
-(17, 45), -- quinta 18:30
-(17, 46), -- quinta 19:20
-
--- IHC / Fernanda
-(18, 33), -- quarta 18:30
-(18, 34); -- quarta 19:20
-
-
--- ============================================================
--- 12. CONSULTAS PARA VERIFICAR OS DADOS
+-- 11. CONSULTAS PARA VERIFICAR OS DADOS
 -- ============================================================
 
 -- ------------------------------------------------------------
@@ -465,7 +405,7 @@ INSERT INTO horario (alocacao_id, slot_id) VALUES
 -- ------------------------------------------------------------
 
 SELECT
-    h.id AS horario_id,
+    a.id AS aula_id,
     c.nome AS curso,
     t.serie,
     t.turno,
@@ -474,9 +414,7 @@ SELECT
     s.dia_semana,
     s.hora_inicio,
     s.duracao_minutos
-FROM horario h
-JOIN alocacao a
-    ON a.id = h.alocacao_id
+FROM aula a
 JOIN turma t
     ON t.id = a.turma_id
 JOIN curso c
@@ -484,9 +422,9 @@ JOIN curso c
 JOIN disciplina d
     ON d.id = a.disciplina_id
 JOIN professor p
-    ON p.id = h.professor_id
+    ON p.id = a.professor_id
 JOIN slot s
-    ON s.id = h.slot_id
+    ON s.id = a.slot_id
 ORDER BY
     t.id,
     CASE s.dia_semana
@@ -501,32 +439,36 @@ ORDER BY
 
 
 -- ------------------------------------------------------------
--- Quantidade de aulas geradas x carga horária esperada
+-- Quantidade de aulas geradas (carga horária derivada) por
+-- turma + disciplina + professor
+-- ------------------------------------------------------------
+-- Antes (com Alocação separada), esta query comparava
+-- "carga_horaria esperada" vs. "aulas_geradas", pois eram duas
+-- fontes de verdade que podiam divergir. Com a fusão em Aula,
+-- não existe mais "esperado" separado de "gerado" — a contagem
+-- de linhas JÁ É a carga horária. Esta query serve para
+-- inspecionar essa contagem, não para comparar duas fontes.
 -- ------------------------------------------------------------
 
 SELECT
-    a.id AS alocacao_id,
     t.id AS turma_id,
     d.nome AS disciplina,
     p.nome AS professor,
-    a.carga_horaria AS aulas_esperadas,
-    COUNT(h.id) AS aulas_geradas
-FROM alocacao a
+    COUNT(a.id) AS aulas_por_semana,
+    COUNT(a.slot_id) AS aulas_ja_alocadas,
+    COUNT(a.id) - COUNT(a.slot_id) AS aulas_pendentes
+FROM aula a
 JOIN turma t
     ON t.id = a.turma_id
 JOIN disciplina d
     ON d.id = a.disciplina_id
 JOIN professor p
     ON p.id = a.professor_id
-LEFT JOIN horario h
-    ON h.alocacao_id = a.id
 GROUP BY
-    a.id,
     t.id,
     d.nome,
-    p.nome,
-    a.carga_horaria
-ORDER BY a.id;
+    p.nome
+ORDER BY t.id;
 
 
 -- ------------------------------------------------------------
@@ -538,16 +480,16 @@ SELECT
     p.nome AS professor,
     s.dia_semana,
     s.hora_inicio
-FROM horario h
+FROM aula a
 JOIN professor p
-    ON p.id = h.professor_id
+    ON p.id = a.professor_id
 JOIN slot s
-    ON s.id = h.slot_id
+    ON s.id = a.slot_id
 LEFT JOIN professor_disponibilidade pd
-    ON pd.professor_id = h.professor_id
-   AND pd.slot_id = h.slot_id
-WHERE pd.professor_id IS NULL;
-
+    ON pd.professor_id = a.professor_id
+   AND pd.slot_id = a.slot_id
+WHERE a.slot_id IS NOT NULL
+  AND pd.professor_id IS NULL;
 
 -- Resultado esperado: 0 linhas.
 

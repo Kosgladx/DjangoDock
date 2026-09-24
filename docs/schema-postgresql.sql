@@ -89,61 +89,51 @@ CREATE TABLE professor_disponibilidade (
 );
 
 -- ============================================================
--- Alocação (input do sistema — definida manualmente pelo coordenador)
+-- Aula (fusão de Alocação + Horário)
+-- ============================================================
+-- Decisão de modelagem: cada linha já nasce representando UMA aula
+-- da semana (não um resumo de carga horária). O coordenador, ao
+-- definir que uma disciplina tem N aulas/semana para uma turma,
+-- insere N linhas com slot_id NULL. O solver preenche slot_id.
+--
+-- Isso elimina duas fontes de verdade que existiam antes
+-- (carga_horaria vs. contagem de linhas em Horario) e elimina a
+-- necessidade do trigger de sincronização de professor_id/turma_id
+-- — professor_id e turma_id agora são atributos nativos da linha,
+-- não denormalização.
+--
+-- "Carga horária" deixa de ser um campo armazenado: é derivada por
+-- COUNT(*) agrupando por turma_id + disciplina_id.
+--
+-- NULL em slot_id é o estado "ainda não alocado pelo solver". As
+-- constraints UNIQUE abaixo não conflitam entre linhas com slot_id
+-- NULL (comportamento padrão do Postgres: NULL nunca é igual a
+-- NULL em UNIQUE), então múltiplas aulas pendentes coexistem sem
+-- problema até o solver rodar.
+--
+-- Pressuposto assumido (não garantido por constraint, é
+-- responsabilidade da aplicação ao inserir o lote de aulas): todas
+-- as linhas de uma mesma combinação turma_id + disciplina_id devem
+-- compartilhar o mesmo professor_id.
 -- ============================================================
 
-CREATE TABLE alocacao (
+CREATE TABLE aula (
     id               SERIAL PRIMARY KEY,
     turma_id         INT NOT NULL REFERENCES turma(id) ON DELETE CASCADE,
     disciplina_id    INT NOT NULL REFERENCES disciplina(id) ON DELETE CASCADE,
     professor_id     INT NOT NULL REFERENCES professor(id) ON DELETE CASCADE,
-    carga_horaria    INT NOT NULL CHECK (carga_horaria > 0),  -- em aulas/semana
-    UNIQUE (turma_id, disciplina_id)  -- uma disciplina só é alocada uma vez por turma
+    slot_id          INT REFERENCES slot(id) ON DELETE SET NULL,
+    UNIQUE (professor_id, slot_id),  -- garante restrição forte 1 (professor) no nível do banco
+    UNIQUE (turma_id, slot_id)       -- garante restrição forte 3 (turma) no nível do banco
 );
-
--- ============================================================
--- Horário (OUTPUT do sistema — resultado do solver)
--- ============================================================
-
--- Nota de modelagem: professor_id é denormalizado aqui (já existe via
--- alocacao_id -> alocacao.professor_id) especificamente para permitir
--- que a restrição forte "professor não pode estar em duas turmas no
--- mesmo slot" seja garantida diretamente pelo banco via UNIQUE
--- constraint, sem depender de trigger ou validação só na aplicação.
--- É uma quebra de normalização estrita, feita de propósito, com
--- justificativa técnica clara — vale mencionar isso na documentação
--- entregue ao professor, já que ele pediu atenção à normalização.
-CREATE TABLE horario (
-    id             SERIAL PRIMARY KEY,
-    alocacao_id    INT NOT NULL REFERENCES alocacao(id) ON DELETE CASCADE,
-    slot_id        INT NOT NULL REFERENCES slot(id) ON DELETE CASCADE,
-    professor_id   INT NOT NULL REFERENCES professor(id) ON DELETE CASCADE,
-    UNIQUE (professor_id, slot_id),   -- garante restrição forte 1 no nível do banco
-    UNIQUE (alocacao_id, slot_id)     -- evita duplicar a mesma aula no mesmo slot
-);
-
--- Trigger para manter professor_id em horario sempre sincronizado
--- com alocacao.professor_id, evitando inconsistência manual
-CREATE OR REPLACE FUNCTION sync_professor_horario()
-RETURNS TRIGGER AS $$
-BEGIN
-    SELECT professor_id INTO NEW.professor_id
-    FROM alocacao WHERE id = NEW.alocacao_id;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_sync_professor_horario
-BEFORE INSERT OR UPDATE ON horario
-FOR EACH ROW EXECUTE FUNCTION sync_professor_horario();
 
 -- ============================================================
 -- Índices auxiliares (consultas mais comuns do sistema)
 -- ============================================================
 
 CREATE INDEX idx_turma_curso ON turma(curso_id);
-CREATE INDEX idx_alocacao_turma ON alocacao(turma_id);
-CREATE INDEX idx_alocacao_professor ON alocacao(professor_id);
-CREATE INDEX idx_horario_alocacao ON horario(alocacao_id);
-CREATE INDEX idx_horario_slot ON horario(slot_id);
+CREATE INDEX idx_aula_turma ON aula(turma_id);
+CREATE INDEX idx_aula_disciplina ON aula(disciplina_id);
+CREATE INDEX idx_aula_professor ON aula(professor_id);
+CREATE INDEX idx_aula_slot ON aula(slot_id);
 CREATE INDEX idx_disponibilidade_professor ON professor_disponibilidade(professor_id);

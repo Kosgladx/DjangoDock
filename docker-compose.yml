@@ -1,0 +1,35 @@
+services:
+  web:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend:/code
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      - DB_ENGINE=postgresql
+      - DB_NAME=timetabling
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
+
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./docs/schema-postgresql.sql:/docker-entrypoint-initdb.d/01-schema-postgresql.sql
+      - ./docs/sample-dataDB.sql:/docker-entrypoint-initdb.d/02-sample-dataDB.sql
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=timetabling
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+
+volumes:
+  postgres_data:
