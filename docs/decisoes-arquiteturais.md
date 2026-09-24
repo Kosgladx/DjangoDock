@@ -52,6 +52,25 @@
 
 ---
 
+## Decisão 004 — Substituição de MILP (PuLP) por Meta-heurísticas e Busca Local no Solver
+
+**Contexto:** O pré-projeto inicial previa a resolução matemática exata por Programação Linear Inteira Mista (MILP). No entanto, o problema de Timetabling (UCTP) é classificado na literatura como NP-difícil. Em instâncias com dezenas de turmas, dezenas de professores e centenas de slots, a formulação exata sofre de explosão combinatória no espaço de busca, gerando tempos de processamento proibitivos ou estouro de memória no Branch-and-Bound para convergir ao gap ótimo — o que compromete a usabilidade e a interatividade esperadas de uma aplicação web.
+
+**Decisão tomada:** Adotar uma abordagem baseada em Heurísticas e Meta-heurísticas (como Algoritmo Construtivo Guloso com Busca Local / Algoritmo Genético) no módulo `backend/solver/`.
+- Permite processar grandes volumes de dados mantendo o tempo de execução delimitado por um orçamento de tempo (*time budget*) ou limite de iterações configurável.
+- As restrições fortes (sem choque de professor ou turma, respeito estrito à disponibilidade) são garantidas na fase de geração construtiva ou por penalidades assintóticas na função de aptidão (*fitness*).
+- As restrições fracas (minimização de janelas vagas do professor e da turma) são ponderadas dinamicamente na função de custo, sem a necessidade de linearização artificial de restrições complexas.
+
+**Alternativas consideradas:**
+- Manter MILP com PuLP/CBC: descartado pela perda acentuada de desempenho e escalabilidade em instâncias reais de grande porte, além de menor flexibilidade para incorporar restrições flexíveis não-lineares.
+- Satisfatibilidade Booleana / SAT / SMT: descartado pela dificuldade em calibrar e otimizar restrições flexíveis graduais (*soft constraints*), sendo mais rígido para otimização de funções de custo contínuas.
+
+**Trade-off aceito:** Abre-se mão da prova formal de otimalidade matemática absoluta em troca de altíssima escalabilidade computacional para grandes volumes de dados, tempo de resposta previsível para o usuário da aplicação web e facilidade de ajuste empírico dos pesos das restrições de negócio.
+
+**Status:** **decisão vigente.**
+
+---
+
 ## Como registrar novas decisões
 
 Ao adicionar uma entrada nova, seguir o formato:
