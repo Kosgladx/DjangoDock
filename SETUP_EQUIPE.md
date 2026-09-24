@@ -142,6 +142,100 @@ Se adicionarmos uma nova configuração no projeto (ex: chave de API ou porta di
 
 ---
 
+## 📦 Guia e Catálogo da Massa de Dados (`seed_data.py`)
+
+O comando `seed_data.py` é o gerador oficial de massa de dados do projeto. Ele serve para que você não precise cadastrar dezenas de matérias, turmas e professores na mão toda vez que o banco de dados for reiniciado.
+
+### Como Executar no Terminal
+O `setup_dev.bat` já roda esse comando sozinho, mas você pode chamá-lo manualmente a qualquer momento:
+
+```powershell
+# 1. Modo Normal: cadastra todas as matérias, professores, disponibilidades e turmas
+.\.venv\Scripts\python.exe backend\manage.py seed_data
+
+# 2. Modo com Solver: além de cadastrar, já executa o algoritmo e gera uma grade alocada
+.\.venv\Scripts\python.exe backend\manage.py seed_data --with-solver
+```
+> **Nota de Segurança:** O comando é **100% idempotente**. Você pode rodá-lo quantas vezes quiser sem risco de duplicar professores ou turmas no banco.
+
+---
+
+### Catálogo Completo dos Dados de Teste
+
+#### 1. Turno e Períodos de Aula (Matutino)
+- **Turno:** Matutino (07:15 às 12:00)
+- **Slots:**
+  - `1º Período`: 07:15 – 08:05 (50 min)
+  - `2º Período`: 08:05 – 08:55 (50 min)
+  - `Intervalo / Recreio`: 08:55 – 09:15 (20 min — intervalo pedagógico)
+  - `3º Período`: 09:15 – 10:05 (50 min)
+  - `4º Período`: 10:05 – 10:55 (50 min)
+  - `5º Período`: 10:55 – 11:45 (50 min)
+
+#### 2. Disciplinas Cadastradas (12 Matérias)
+| Código | Disciplina | Exige Laboratório? | Cor na Interface (Hex) |
+| :---: | :--- | :---: | :---: |
+| `MAT` | Matemática I & II | Não | `#3B82F6` (Azul) |
+| `FIS` | Física | Sim | `#8B5CF6` (Roxo) |
+| `QUI` | Química Orgânica & Geral | Sim | `#F43F5E` (Rosa Carmim) |
+| `BIO` | Biologia | Sim | `#10B981` (Verde Esmeralda) |
+| `POR` | Língua Portuguesa & Literatura | Não | `#6366F1` (Índigo) |
+| `HIS` | História | Não | `#F59E0B` (Âmbar) |
+| `GEO` | Geografia | Não | `#D97706` (Laranja Escuro) |
+| `ING` | Inglês Instrumental | Não | `#06B6D4` (Ciano) |
+| `EDF` | Educação Física | Não | `#F97316` (Laranja) |
+| `SOC` | Sociologia | Não | `#EC4899` (Rosa Pink) |
+| `FIL` | Filosofia | Não | `#14B8A6` (Turquesa) |
+| `ART` | Artes Visuais | Não | `#A855F7` (Púrpura) |
+
+#### 3. Corpo Docente (11 Professores)
+| Professor(a) | Iniciais | Limite Semanal | Regra de Disponibilidade Específica |
+| :--- | :---: | :---: | :--- |
+| **Prof. Roberto Silva** | RS | 20 horas | **Bloqueado às sextas-feiras**; Preferência por segundas e quartas |
+| **Profª. Mariana Costa** | MC | 16 horas | Livre todos os dias |
+| **Prof. Carlos Eduardo** | CE | 14 horas | Livre todos os dias |
+| **Profª. Beatriz Lima** | BL | 22 horas | Livre todos os dias |
+| **Profª. Aline Mendes** | AM | 18 horas | Livre todos os dias |
+| **Prof. Fernando Dias** | FD | 16 horas | Livre todos os dias |
+| **Prof. Lucas Ribeiro** | LR | 12 horas | Livre todos os dias |
+| **Profª. Julia Smith** | JS | 10 horas | Livre todos os dias |
+| **Prof. Marcos Paulo** | MP | 10 horas | Livre todos os dias |
+| **Profª. Helena Ramos** | HR | 12 horas | Livre todos os dias |
+| **Profª. Laura Meireles** | LM | 8 horas | Livre todos os dias |
+
+#### 4. Turmas e Carga Curricular (3º Ano A)
+- **Turmas:** `3º Ano A` (35 alunos) e `3º Ano B` (32 alunos)
+- **Demandas Curriculares Vinculadas ao 3º Ano A:**
+  - Matemática (Prof. Roberto): 4 aulas/semana (com permissão para aulas geminadas)
+  - Língua Portuguesa (Profª. Beatriz): 4 aulas/semana
+  - Física (Profª. Mariana): 3 aulas/semana
+  - Química (Prof. Carlos): 3 aulas/semana
+  - Biologia (Profª. Aline): 3 aulas/semana
+  - História (Prof. Fernando): 2 aulas/semana
+  - Geografia (Prof. Lucas): 2 aulas/semana
+  - Inglês (Profª. Julia): 1 aula/semana
+  - Educação Física (Prof. Marcos): 1 aula/semana
+  - Sociologia (Profª. Helena): 1 aula/semana
+  - Artes Visuais (Profª. Laura): 1 aula/semana
+
+#### 5. Parâmetros e Pesos do Solver (Constraints)
+- `teacher_clash` (Hard — Peso 100): Inviolável — 1 professor em apenas 1 turma simultânea.
+- `teacher_blocked` (Hard — Peso 100): Respeito estrito aos dias bloqueados pelo docente.
+- `min_gap_weight` (Soft — Peso 85): Penaliza janelas ociosas entre aulas do professor.
+- `double_lesson_weight` (Soft — Peso 90): Favorece blocos contínuos de 2 aulas para matérias de 3+ créditos.
+- `daily_balance_weight` (Soft — Peso 70): Evita sobrecarga de aulas da mesma matéria em um único dia.
+- `day_concentration_weight` (Soft — Peso 60): Concentra os dias letivos do professor para evitar deslocamentos desnecessários.
+
+---
+
+### Como Adicionar Novos Dados no Seed?
+Se você quiser cadastrar um novo professor ou matéria nos dados de teste:
+1. Abra o arquivo [`backend/core/management/commands/seed_data.py`](file:///c:/Users/Kauê/Documents/TimeTabling/backend/core/management/commands/seed_data.py).
+2. Adicione uma linha na lista correspondente (`subjects_data`, `teachers_data` ou `curric_3a`).
+3. Rode `python backend/manage.py seed_data` no terminal para atualizar o banco!
+
+---
+
 ## 🛠️ Solução de Problemas Comuns (FAQ)
 
 ### ❓ "O PowerShell dá erro dizendo que a execução de scripts está desabilitada"

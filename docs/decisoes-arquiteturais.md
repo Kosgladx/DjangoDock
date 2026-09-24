@@ -153,6 +153,29 @@ Essa complexidade resultou na rejeição do MILP em favor de Meta-heurísticas d
 
 ---
 
+## Decisão 008 — Arquitetura de Ambientes Híbrida: SQLite para Desenvolvimento Local Ágil vs. PostgreSQL/Docker para Homologação e Produção
+
+**Contexto:** O projeto possui especificação formal, diagramas e scripts estruturados para PostgreSQL ([schema-postgresql.sql](file:///c:/Users/Kauê/Documents/TimeTabling/docs/schema-postgresql.sql) e [sample-dataDB.sql](file:///c:/Users/Kauê/Documents/TimeTabling/docs/sample-dataDB.sql)). No entanto, no dia a dia acadêmico de desenvolvimento em equipe (composto por integrantes com máquinas Windows de capacidades variadas), exigir que todos mantenham instâncias locais do PostgreSQL instaladas e ativas como serviço do sistema operacional — ou dependam obrigatoriamente do Docker Desktop com WSL2 rodando a todo momento — impõe gargalos severos:
+1. Alto consumo ocioso de memória RAM e CPU pelo Docker Desktop no Windows.
+2. Atrito de onboarding decorrente de conflitos de credenciais, portas (`5432` ocupada) e serviços do Windows.
+3. Lentidão no ciclo de feedback rápido (*edit-refresh-test*) durante prototipação de algoritmos e telas.
+
+**Decisão tomada:** Adotar uma estratégia de ambientes híbrida, configurada de forma inteligente e declarativa em [backend/eduschedule_backend/settings.py](file:///c:/Users/Kauê/Documents/TimeTabling/backend/eduschedule_backend/settings.py):
+1. **Ambiente de Desenvolvimento Local (Ágil):** Por padrão, no terminal ou via [setup_dev.bat](file:///c:/Users/Kauê/Documents/TimeTabling/setup_dev.bat) e [run_backend.bat](file:///c:/Users/Kauê/Documents/TimeTabling/run_backend.bat), o Django opera sobre **SQLite** (`backend/db.sqlite3`). O banco é mantido fora do versionamento do Git (ignorado via `.gitignore`), possui boot em milissegundos e suporta o "botão de pânico" (apagar o arquivo e rodar `setup_dev.bat` restaura um banco 100% migrado e populado em 5 segundos).
+2. **Ambiente de Homologação, Apresentação de Banca e Produção:** Utiliza **Docker e Docker Compose** ([docker-compose.yml](file:///c:/Users/Kauê/Documents/TimeTabling/docker-compose.yml)), provisionando um container isolado do PostgreSQL 16 Alpine com os scripts SQL de `docs/` e um container com o backend em Python 3.12-slim.
+3. **Chaveamento Transparente:** O código da aplicação não precisa ser alterado. O `settings.py` inspeciona as variáveis de ambiente: quando executado via Docker Compose, as variáveis `DB_ENGINE=postgresql` e `DB_HOST=db` são injetadas automaticamente, redirecionando o ORM para o PostgreSQL.
+
+**Alternativas consideradas:**
+- *PostgreSQL obrigatório localmente em cada computador:* Descartado pelo atrito de instalação, manutenção de serviços em segundo plano e disparidade de ambientes entre os membros da equipe.
+- *Uso exclusivo de Docker para qualquer etapa de desenvolvimento:* Descartado pela sobrecarga de recursos de máquinas locais com menos memória RAM e menor agilidade no hot-reload de desenvolvimento.
+- *Abandono do PostgreSQL em favor exclusivo do SQLite:* Descartado por violar os requisitos acadêmicos da disciplina, que exigem conformidade com SGBD corporativo relacional e execução do schema formal em PostgreSQL.
+
+**Trade-off aceito:** Aceita-se a necessidade de validar migrações contra ambos os dialetos (garantida pela camada de abstração do ORM do Django e pelos scripts SQL canônicos da pasta `docs/`), obtendo em contrapartida agilidade máxima de desenvolvimento no dia a dia, zero fricção de setup para a equipe e garantia de paridade formal com o ambiente de produção via containers.
+
+**Status:** **decisão vigente.**
+
+---
+
 ## Como registrar novas decisões
 
 
