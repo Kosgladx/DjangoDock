@@ -1,9 +1,9 @@
-﻿import time
+import time
 import random
 from .constraints import ConstraintEvaluator
 from core.models import (
     SchoolClass, CurriculumRequirement, TimeSlot, TeacherAvailability,
-    ClassRoom, TimetableSchedule, TimetableSlotAssignment, ConstraintConfig
+    TimetableSchedule, TimetableSlotAssignment, ConstraintConfig
 )
 
 
@@ -23,11 +23,9 @@ class TimetablingSolver:
 
         # 1. Fetch data
         classes = list(SchoolClass.objects.all())
-        curricula = list(CurriculumRequirement.objects.select_related('school_class', 'subject', 'teacher', 'preferred_room').all())
+        curricula = list(CurriculumRequirement.objects.select_related('school_class', 'subject', 'teacher').all())
         # Filter regular non-break slots
         slots = list(TimeSlot.objects.filter(is_break=False).order_by('order'))
-        rooms = list(ClassRoom.objects.all())
-        default_room = rooms[0] if rooms else None
 
         # Fetch teacher availabilities: map (teacher_id, day, slot_id) -> status
         avail_qs = TeacherAvailability.objects.all()
@@ -39,23 +37,22 @@ class TimetablingSolver:
         days = [0, 1, 2, 3, 4] # Seg a Sex (0 a 4)
 
         # 2. Build list of lessons to allocate per class
-        # Each item: { class_id, subject_id, teacher_id, room_id, allow_double }
+        # Each item: { class_id, subject_id, teacher_id, allow_double }
         class_lessons = {}
         for c in classes:
             class_lessons[c.id] = []
 
         for req in curricula:
-            room = req.preferred_room or (req.school_class.default_room if hasattr(req.school_class, 'default_room') and req.school_class.default_room else default_room)
             for _ in range(req.weekly_lessons):
                 class_lessons[req.school_class_id].append({
                     'class_id': req.school_class_id,
                     'subject_id': req.subject_id,
                     'teacher_id': req.teacher_id,
-                    'room_id': room.id if room else 1,
                     'allow_double': req.double_lessons_allowed,
                 })
 
         # 3. Available grid coordinates: list of (day, slot)
+
         grid_positions = []
         for d in days:
             for s in slots:
@@ -69,7 +66,6 @@ class TimetablingSolver:
         for attempt in range(max_attempts):
             current_assignments = []
             occupied_teacher = set() # (teacher_id, day, slot_id)
-            occupied_room = set()    # (room_id, day, slot_id)
 
             for c in classes:
                 lessons = list(class_lessons[c.id])
@@ -109,11 +105,11 @@ class TimetablingSolver:
                                 if t1_free and t2_free:
                                     current_assignments.append({
                                         'class_id': c.id, 'day': d, 'slot_id': s1.id, 'slot_order': s1.order,
-                                        'teacher_id': l1['teacher_id'], 'subject_id': l1['subject_id'], 'room_id': l1['room_id']
+                                        'teacher_id': l1['teacher_id'], 'subject_id': l1['subject_id']
                                     })
                                     current_assignments.append({
                                         'class_id': c.id, 'day': d, 'slot_id': s2.id, 'slot_order': s2.order,
-                                        'teacher_id': l2['teacher_id'], 'subject_id': l2['subject_id'], 'room_id': l2['room_id']
+                                        'teacher_id': l2['teacher_id'], 'subject_id': l2['subject_id']
                                     })
                                     occupied_teacher.add((l1['teacher_id'], d, s1.id))
                                     occupied_teacher.add((l2['teacher_id'], d, s2.id))
@@ -137,7 +133,7 @@ class TimetablingSolver:
                             if t_free:
                                 current_assignments.append({
                                     'class_id': c.id, 'day': d, 'slot_id': s.id, 'slot_order': s.order,
-                                    'teacher_id': l['teacher_id'], 'subject_id': l['subject_id'], 'room_id': l['room_id']
+                                    'teacher_id': l['teacher_id'], 'subject_id': l['subject_id']
                                 })
                                 occupied_teacher.add((l['teacher_id'], d, s.id))
                                 placed = True
@@ -150,7 +146,7 @@ class TimetablingSolver:
                             if not already_used:
                                 current_assignments.append({
                                     'class_id': c.id, 'day': d, 'slot_id': s.id, 'slot_order': s.order,
-                                    'teacher_id': l['teacher_id'], 'subject_id': l['subject_id'], 'room_id': l['room_id']
+                                    'teacher_id': l['teacher_id'], 'subject_id': l['subject_id']
                                 })
                                 break
 
@@ -196,7 +192,6 @@ class TimetablingSolver:
                     time_slot_id=a['slot_id'],
                     subject_id=a['subject_id'],
                     teacher_id=a['teacher_id'],
-                    room_id=a['room_id'],
                     has_conflict=has_warn,
                     conflict_type='SOFT_GAP' if has_warn else None,
                     conflict_message=msg
@@ -204,6 +199,7 @@ class TimetablingSolver:
             )
 
         TimetableSlotAssignment.objects.bulk_create(slot_assignment_objs)
+
 
         return {
             'schedule_id': schedule.id,

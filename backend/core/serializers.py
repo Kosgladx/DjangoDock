@@ -1,7 +1,7 @@
-﻿from rest_framework import serializers
+from rest_framework import serializers
 from .models import (
     Teacher, TeacherAvailability, Shift, TimeSlot, Subject,
-    ClassRoom, SchoolClass, CurriculumRequirement, ConstraintConfig,
+    SchoolClass, CurriculumRequirement, ConstraintConfig,
     TimetableSchedule, TimetableSlotAssignment
 )
 
@@ -47,17 +47,12 @@ class SubjectSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class ClassRoomSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ClassRoom
-        fields = '__all__'
-
-
 class CurriculumRequirementSerializer(serializers.ModelSerializer):
     subject_name = serializers.ReadOnlyField(source='subject.name')
     subject_code = serializers.ReadOnlyField(source='subject.code')
     subject_color = serializers.ReadOnlyField(source='subject.color')
     teacher_name = serializers.ReadOnlyField(source='teacher.name')
+
 
     class Meta:
         model = CurriculumRequirement
@@ -88,8 +83,6 @@ class TimetableSlotAssignmentSerializer(serializers.ModelSerializer):
     subject_code = serializers.ReadOnlyField(source='subject.code')
     subject_color = serializers.ReadOnlyField(source='subject.color')
     teacher_name = serializers.ReadOnlyField(source='teacher.name')
-    room_name = serializers.ReadOnlyField(source='room.name')
-    room_block = serializers.ReadOnlyField(source='room.block')
     slot_name = serializers.ReadOnlyField(source='time_slot.name')
     slot_order = serializers.ReadOnlyField(source='time_slot.order')
     slot_start = serializers.ReadOnlyField(source='time_slot.start_time')

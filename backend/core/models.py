@@ -125,27 +125,11 @@ class Subject(models.Model):
         return f"{self.name} ({self.code})"
 
 
-class ClassRoom(models.Model):
-    name = models.CharField(max_length=80, verbose_name="Nome da Sala")
-    block = models.CharField(max_length=50, default="Bloco A")
-    capacity = models.IntegerField(default=40)
-    is_lab = models.BooleanField(default=False)
-    lab_type = models.CharField(max_length=80, blank=True, null=True) # Física, Química, Informática
-
-    class Meta:
-        verbose_name = "Sala / Espaço"
-        verbose_name_plural = "Salas e Laboratórios"
-
-    def __str__(self):
-        return f"{self.name} ({self.block})"
-
-
 class SchoolClass(models.Model):
     name = models.CharField(max_length=80, verbose_name="Nome da Turma") # 3º Ano A
     grade_level = models.CharField(max_length=80, default="3º Ano Ensino Médio")
     shift = models.ForeignKey(Shift, related_name='classes', on_delete=models.CASCADE)
     student_count = models.IntegerField(default=35)
-    default_room = models.ForeignKey(ClassRoom, null=True, blank=True, on_delete=models.SET_NULL)
 
     class Meta:
         verbose_name = "Turma"
@@ -161,7 +145,6 @@ class CurriculumRequirement(models.Model):
     teacher = models.ForeignKey(Teacher, related_name='curriculum_assignments', on_delete=models.CASCADE)
     weekly_lessons = models.IntegerField(default=4, verbose_name="Aulas Semanais")
     double_lessons_allowed = models.BooleanField(default=True)
-    preferred_room = models.ForeignKey(ClassRoom, null=True, blank=True, on_delete=models.SET_NULL)
 
     class Meta:
         verbose_name = "Carga Curricular"
@@ -215,7 +198,6 @@ class TimetableSlotAssignment(models.Model):
     time_slot = models.ForeignKey(TimeSlot, on_delete=models.CASCADE)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
-    room = models.ForeignKey(ClassRoom, on_delete=models.CASCADE)
     is_manual_override = models.BooleanField(default=False)
     has_conflict = models.BooleanField(default=False)
     conflict_type = models.CharField(max_length=50, blank=True, null=True) # HARD_CLASH, SOFT_GAP, PREFERENCE_BREAK
@@ -227,4 +209,4 @@ class TimetableSlotAssignment(models.Model):
         unique_together = ('timetable_schedule', 'school_class', 'day_of_week', 'time_slot')
 
     def __str__(self):
-        return f"{self.school_class.name} - Dia {self.day_of_week} Slot {self.time_slot.name}: {self.subject.code} ({self.teacher.name})"
+        return f"{self.school_class.name} - Dia {self.day_of_week} Slot {self.time_slot.name}: {self.subject.code} ({self.teacher.name})"

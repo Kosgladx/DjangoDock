@@ -1,8 +1,8 @@
-﻿class ConstraintEvaluator:
+class ConstraintEvaluator:
     def __init__(self, config_weights=None):
         self.weights = {
             'teacher_clash': 100000,
-            'room_clash': 100000,
+            'class_clash': 100000,
             'teacher_blocked': 100000,
             'min_gap_weight': 85,
             'double_lesson_weight': 90,
@@ -16,7 +16,7 @@
         """
         assignments: list of dicts:
           { 'class_id': int, 'day': int, 'slot_id': int, 'slot_order': int,
-            'teacher_id': int, 'subject_id': int, 'room_id': int }
+            'teacher_id': int, 'subject_id': int }
         """
         hard_violations = 0
         soft_penalty = 0
@@ -26,9 +26,9 @@
         # 1. HARD: Teacher Clashes
         # Map (teacher_id, day, slot_id) -> list of classes
         teacher_time_map = {}
-        # 2. HARD: Room Clashes
-        # Map (room_id, day, slot_id) -> list of classes
-        room_time_map = {}
+        # 2. HARD: Class Clashes (turma com duas aulas simultâneas)
+        # Map (class_id, day, slot_id) -> list of assignments
+        class_time_map = {}
         # Teacher schedule by day: teacher_id -> day -> list of slot_orders
         teacher_day_slots = {}
         # Class schedule by day: class_id -> day -> list of subject_ids
@@ -38,8 +38,8 @@
             t_key = (a['teacher_id'], a['day'], a['slot_id'])
             teacher_time_map.setdefault(t_key, []).append(a)
 
-            r_key = (a['room_id'], a['day'], a['slot_id'])
-            room_time_map.setdefault(r_key, []).append(a)
+            c_key = (a['class_id'], a['day'], a['slot_id'])
+            class_time_map.setdefault(c_key, []).append(a)
 
             # Check teacher blocked availability
             avail_key = (a['teacher_id'], a['day'], a['slot_id'])
@@ -59,12 +59,13 @@
                 hard_violations += violation_count
                 hard_details.append(f"Choque: Professor {t_id} alocado em {len(class_list)} turmas no Dia {day} Slot {slot_id}")
 
-        # Check room double-booking
-        for (r_id, day, slot_id), class_list in room_time_map.items():
-            if len(class_list) > 1:
-                violation_count = len(class_list) - 1
+        # Check class double-booking
+        for (c_id, day, slot_id), a_list in class_time_map.items():
+            if len(a_list) > 1:
+                violation_count = len(a_list) - 1
                 hard_violations += violation_count
-                hard_details.append(f"Choque: Sala {r_id} ocupada por {len(class_list)} turmas no Dia {day} Slot {slot_id}")
+                hard_details.append(f"Choque: Turma {c_id} possui {len(a_list)} aulas simultâneas no Dia {day} Slot {slot_id}")
+
 
         # 3. SOFT CONSTRAINTS
         # A. Minimize Teacher Gaps (Janelas Vagas)

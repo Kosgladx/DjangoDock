@@ -4,12 +4,12 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from .models import (
     Teacher, TeacherAvailability, Shift, TimeSlot, Subject,
-    ClassRoom, SchoolClass, CurriculumRequirement, ConstraintConfig,
+    SchoolClass, CurriculumRequirement, ConstraintConfig,
     TimetableSchedule, TimetableSlotAssignment
 )
 from .serializers import (
     TeacherSerializer, TeacherAvailabilitySerializer, ShiftSerializer,
-    TimeSlotSerializer, SubjectSerializer, ClassRoomSerializer,
+    TimeSlotSerializer, SubjectSerializer,
     SchoolClassSerializer, CurriculumRequirementSerializer,
     ConstraintConfigSerializer, TimetableScheduleSerializer,
     TimetableSlotAssignmentSerializer
@@ -81,18 +81,13 @@ class SubjectViewSet(viewsets.ModelViewSet):
     serializer_class = SubjectSerializer
 
 
-class ClassRoomViewSet(viewsets.ModelViewSet):
-    queryset = ClassRoom.objects.all()
-    serializer_class = ClassRoomSerializer
-
-
 class SchoolClassViewSet(viewsets.ModelViewSet):
     queryset = SchoolClass.objects.prefetch_related('curriculum__subject', 'curriculum__teacher').all()
     serializer_class = SchoolClassSerializer
 
 
 class CurriculumRequirementViewSet(viewsets.ModelViewSet):
-    queryset = CurriculumRequirement.objects.select_related('school_class', 'subject', 'teacher', 'preferred_room').all()
+    queryset = CurriculumRequirement.objects.select_related('school_class', 'subject', 'teacher').all()
     serializer_class = CurriculumRequirementSerializer
 
 
@@ -103,7 +98,7 @@ class ConstraintConfigViewSet(viewsets.ModelViewSet):
 
 class TimetableSlotAssignmentViewSet(viewsets.ModelViewSet):
     queryset = TimetableSlotAssignment.objects.select_related(
-        'timetable_schedule', 'school_class', 'time_slot', 'subject', 'teacher', 'room'
+        'timetable_schedule', 'school_class', 'time_slot', 'subject', 'teacher'
     ).all()
     serializer_class = TimetableSlotAssignmentSerializer
 
@@ -136,8 +131,9 @@ class TimetableSlotAssignmentViewSet(viewsets.ModelViewSet):
 
 
 class TimetableScheduleViewSet(viewsets.ModelViewSet):
-    queryset = TimetableSchedule.objects.prefetch_related('assignments__subject', 'assignments__teacher', 'assignments__room', 'assignments__time_slot', 'assignments__school_class').all()
+    queryset = TimetableSchedule.objects.prefetch_related('assignments__subject', 'assignments__teacher', 'assignments__time_slot', 'assignments__school_class').all()
     serializer_class = TimetableScheduleSerializer
+
 
     @action(detail=False, methods=['get'])
     def active(self, request):
@@ -181,22 +177,7 @@ def seed_sample_data(request):
         )
         created_slots.append(slot)
 
-    # 2. Rooms
-    rooms_data = [
-        {'name': 'Sala 102', 'block': 'Bloco A', 'capacity': 40, 'is_lab': False},
-        {'name': 'Sala 103', 'block': 'Bloco A', 'capacity': 40, 'is_lab': False},
-        {'name': 'Lab. Física 1', 'block': 'Bloco B', 'capacity': 35, 'is_lab': True, 'lab_type': 'Física'},
-        {'name': 'Lab. Química', 'block': 'Bloco B', 'capacity': 35, 'is_lab': True, 'lab_type': 'Química'},
-        {'name': 'Lab. Biologia', 'block': 'Bloco B', 'capacity': 35, 'is_lab': True, 'lab_type': 'Biologia'},
-        {'name': 'Ginásio Poliesportivo', 'block': 'Esportes', 'capacity': 60, 'is_lab': False},
-        {'name': 'Ateliê de Artes', 'block': 'Bloco C', 'capacity': 30, 'is_lab': False},
-    ]
-    created_rooms = {}
-    for r in rooms_data:
-        room, _ = ClassRoom.objects.update_or_create(name=r['name'], defaults=r)
-        created_rooms[r['name']] = room
-
-    # 3. Subjects
+    # 2. Subjects
     subjects_data = [
         {'name': 'Matemática I & II', 'code': 'MAT', 'color': '#3B82F6', 'requires_lab': False},
         {'name': 'Física', 'code': 'FIS', 'color': '#8B5CF6', 'requires_lab': True},
@@ -216,7 +197,7 @@ def seed_sample_data(request):
         subj, _ = Subject.objects.update_or_create(code=s['code'], defaults=s)
         created_subjects[s['code']] = subj
 
-    # 4. Teachers
+    # 3. Teachers
     teachers_data = [
         {'name': 'Prof. Roberto Silva', 'email': 'roberto.silva@escola.edu.br', 'avatar_initials': 'RS', 'color': '#1D4ED8', 'max_weekly_hours': 20},
         {'name': 'Profª. Mariana Costa', 'email': 'mariana.costa@escola.edu.br', 'avatar_initials': 'MC', 'color': '#6D28D9', 'max_weekly_hours': 16},
@@ -250,40 +231,39 @@ def seed_sample_data(request):
                     defaults={'status': st}
                 )
 
-    # 5. School Classes
+    # 4. School Classes
     c3a, _ = SchoolClass.objects.update_or_create(
         name="3º Ano A",
-        defaults={'grade_level': '3º Ano Ensino Médio', 'shift': shift, 'student_count': 35, 'default_room': created_rooms['Sala 102']}
+        defaults={'grade_level': '3º Ano Ensino Médio', 'shift': shift, 'student_count': 35}
     )
     c3b, _ = SchoolClass.objects.update_or_create(
         name="3º Ano B",
-        defaults={'grade_level': '3º Ano Ensino Médio', 'shift': shift, 'student_count': 32, 'default_room': created_rooms['Sala 103']}
+        defaults={'grade_level': '3º Ano Ensino Médio', 'shift': shift, 'student_count': 32}
     )
 
-    # 6. Curriculum Requirements for 3º Ano A
+    # 5. Curriculum Requirements for 3º Ano A
     curric_3a = [
-        (created_subjects['MAT'], created_teachers['Prof. Roberto Silva'], 4, created_rooms['Sala 102']),
-        (created_subjects['FIS'], created_teachers['Profª. Mariana Costa'], 3, created_rooms['Lab. Física 1']),
-        (created_subjects['QUI'], created_teachers['Prof. Carlos Eduardo'], 3, created_rooms['Lab. Química']),
-        (created_subjects['BIO'], created_teachers['Profª. Aline Mendes'], 3, created_rooms['Lab. Biologia']),
-        (created_subjects['POR'], created_teachers['Profª. Beatriz Lima'], 4, created_rooms['Sala 102']),
-        (created_subjects['HIS'], created_teachers['Prof. Fernando Dias'], 2, created_rooms['Sala 102']),
-        (created_subjects['GEO'], created_teachers['Prof. Lucas Ribeiro'], 2, created_rooms['Sala 102']),
-        (created_subjects['ING'], created_teachers['Profª. Julia Smith'], 1, created_rooms['Sala 102']),
-        (created_subjects['EDF'], created_teachers['Prof. Marcos Paulo'], 1, created_rooms['Ginásio Poliesportivo']),
-        (created_subjects['SOC'], created_teachers['Profª. Helena Ramos'], 1, created_rooms['Sala 102']),
-        (created_subjects['ART'], created_teachers['Profª. Laura Meireles'], 1, created_rooms['Ateliê de Artes']),
+        (created_subjects['MAT'], created_teachers['Prof. Roberto Silva'], 4),
+        (created_subjects['FIS'], created_teachers['Profª. Mariana Costa'], 3),
+        (created_subjects['QUI'], created_teachers['Prof. Carlos Eduardo'], 3),
+        (created_subjects['BIO'], created_teachers['Profª. Aline Mendes'], 3),
+        (created_subjects['POR'], created_teachers['Profª. Beatriz Lima'], 4),
+        (created_subjects['HIS'], created_teachers['Prof. Fernando Dias'], 2),
+        (created_subjects['GEO'], created_teachers['Prof. Lucas Ribeiro'], 2),
+        (created_subjects['ING'], created_teachers['Profª. Julia Smith'], 1),
+        (created_subjects['EDF'], created_teachers['Prof. Marcos Paulo'], 1),
+        (created_subjects['SOC'], created_teachers['Profª. Helena Ramos'], 1),
+        (created_subjects['ART'], created_teachers['Profª. Laura Meireles'], 1),
     ]
-    for subj, teach, hours, room in curric_3a:
+    for subj, teach, hours in curric_3a:
         CurriculumRequirement.objects.update_or_create(
             school_class=c3a, subject=subj,
-            defaults={'teacher': teach, 'weekly_lessons': hours, 'preferred_room': room, 'double_lessons_allowed': True}
+            defaults={'teacher': teach, 'weekly_lessons': hours, 'double_lessons_allowed': True}
         )
 
-    # 7. Constraint Configurations
+    # 6. Constraint Configurations
     constraints = [
         {'name': 'Sem choque de professor', 'key': 'teacher_clash', 'is_hard': True, 'weight': 100, 'description': 'Inviolável: 1 professor em apenas 1 turma simultânea'},
-        {'name': 'Sem choque de salas físicas', 'key': 'room_clash', 'is_hard': True, 'weight': 100, 'description': 'Inviolável: 1 espaço físico por turma'},
         {'name': 'Indisponibilidade do docente', 'key': 'teacher_blocked', 'is_hard': True, 'weight': 100, 'description': 'Respeitar dias bloqueados pelo professor'},
         {'name': 'Minimizar janelas vagas', 'key': 'min_gap_weight', 'is_hard': False, 'weight': 85, 'description': 'Penaliza horários ociosos entre aulas do docente'},
         {'name': 'Agrupamento de aulas geminadas', 'key': 'double_lesson_weight', 'is_hard': False, 'weight': 90, 'description': 'Favorece blocos contínuos de 2 aulas'},
@@ -292,6 +272,7 @@ def seed_sample_data(request):
     ]
     for c in constraints:
         ConstraintConfig.objects.update_or_create(key=c['key'], defaults=c)
+
 
     # 8. Execute initial solver run to generate active timetable
     solver = TimetablingSolver(schedule_name="Grade Oficial 2026.1", semester="1º Semestre 2026")

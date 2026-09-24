@@ -94,10 +94,26 @@ Essa complexidade resultou na rejeição do MILP em favor de Meta-heurísticas d
 
 **Status:** **decisão vigente.**
 
+---
+
+## Decisão 005 — Exclusão da Entidade Sala do Escopo da Versão Corrente
+
+**Contexto:** O protótipo rascunhado continha a entidade `ClassRoom` (Salas) e campos de chave estrangeira em alocações de aula. No entanto, na entrevista consolidada de requisitos ([requisitos-timetabling-tecnico.md](file:///c:/Users/Kauê/Documents/TimeTabling/docs/requisitos-timetabling-tecnico.md), Seção 4.1 e Seção 6), o cliente/professor confirmou explicitamente que as salas são fixas e conhecidas fora do sistema, excluindo a alocação de salas do escopo obrigatório deste semestre. A presença dessa entidade no código gerava dependência de integridade artificial e complexidade fantasma no solver.
+
+**Decisão tomada:** Remover completamente a entidade `ClassRoom` e suas referências do código ativo (modelos, serializers, views, solver e rotas da API) nesta versão do software, mantendo o DER e o schema alinhados com [schema-postgresql.sql](file:///c:/Users/Kauê/Documents/TimeTabling/docs/schema-postgresql.sql).
+- A alocação de salas fica documentada e preservada formalmente apenas como extensão futura planejada para a continuidade do projeto como TCC.
+
+**Alternativas consideradas:**
+- Manter `ClassRoom` com chaves estrangeiras opcionais (`null=True, blank=True`): descartado para evitar código zumbi/morto (YAGNI) e evitar questionamentos da banca examinadora sobre regras de sala incompletas.
+
+**Trade-off aceito:** Simplificação radical e coerência do domínio atual (foco estrito no conflito professor/turma/horário), ao custo de precisar recriar a entidade sala no futuro quando a extensão de TCC for iniciada.
+
+**Status:** **decisão vigente.**
 
 ---
 
 ## Como registrar novas decisões
+
 
 Ao adicionar uma entrada nova, seguir o formato:
 
