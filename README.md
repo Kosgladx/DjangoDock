@@ -28,8 +28,11 @@ TimeTabling/
 │   ├── src/components/        # Modais de cadastro e edição
 │   └── package.json           # Dependências e scripts do frontend
 ├── docker-compose.yml         # Orquestração do ambiente completo (PostgreSQL + Backend)
+├── setup_dev.bat              # Script de automação e onboarding em 1-clique
 ├── run_backend.bat            # Script de inicialização rápida do backend (auto-ativa .venv)
-└── run_frontend.bat           # Script de inicialização rápida do frontend
+├── run_frontend.bat           # Script de inicialização rápida do frontend
+├── SETUP_EQUIPE.md            # Guia prático de onboarding, comandos e catálogo de dados
+└── README.md                  # Este documento (visão geral do projeto)
 ```
 
 ---
