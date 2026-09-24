@@ -54,7 +54,32 @@
 
 ## Decisão 004 — Substituição de MILP (PuLP) por Meta-heurísticas e Busca Local no Solver
 
-**Contexto:** O pré-projeto inicial previa a resolução matemática exata por Programação Linear Inteira Mista (MILP). No entanto, o problema de Timetabling (UCTP) é classificado na literatura como NP-difícil. Em instâncias com dezenas de turmas, dezenas de professores e centenas de slots, a formulação exata sofre de explosão combinatória no espaço de busca, gerando tempos de processamento proibitivos ou estouro de memória no Branch-and-Bound para convergir ao gap ótimo — o que compromete a usabilidade e a interatividade esperadas de uma aplicação web.
+**Contexto:** O pré-projeto inicial previa a formulação e resolução matemática exata via Programação Linear Inteira Mista (MILP). No entanto, o problema de Timetabling Universitário/Escolar (UCTP) é classicamente categorizado na literatura de Pesquisa Operacional e Ciência da Computação como **NP-difícil**. 
+
+Para compreender o gargalo prático, considere uma formulação MILP sobre os dados de referência do projeto (escola de médio porte com aproximadamente 50 professores, 14 turmas, 15 disciplinas por turma e 25 slots na semana):
+- Para cada combinação de professor ($p$), turma ($t$), disciplina ($d$) e slot ($s$), o modelo exige uma variável de decisão binária $x_{p,t,d,s} \in \{0, 1\}$.
+- Apenas nessa escala, o solver precisa lidar com:
+  $$\approx 50 \times 14 \times 15 \times 25 = 262.500 \text{ variáveis binárias}$$
+- O espaço de busca teórico de combinações possíveis atinge a ordem de magnitude de **$2^{262.500}$**, um número astronômico com dezenas de milhares de dígitos (superior ao número total de átomos no universo observável).
+
+Essa complexidade resultou na rejeição do MILP em favor de Meta-heurísticas devido a **3 fatores fundamentais**:
+
+1. **Explosão Combinatória e Gargalo de Memória no Branch-and-Bound:**
+   Solvers exatos de MILP buscam a prova matemática de otimalidade absoluta dividindo o problema em uma árvore binária de busca (*Branch-and-Bound*). Com dezenas de restrições conflitantes e janelas vagas a evitar, as regras de corte matemático falham em podar ramos suficientes com rapidez. A árvore de nós a explorar explode na memória RAM, transformando instâncias reais que deveriam rodar em segundos em execuções imprevisíveis que podem levar de 40 minutos a horas inteiras sem fechar o gap de otimalidade.
+2. **Incompatibilidade com o Ciclo de Vida HTTP e Arquitetura Web:**
+   Servidores web modernos (Gunicorn, Nginx) e navegadores encerram conexões síncronas que excedam limites de tempo (*timeouts* típicos de 30 a 60 segundos com erro `504 Gateway Timeout`). Um algoritmo exato cujo tempo de convergência é imprevisível quebra a arquitetura cliente-servidor síncrona da API REST.
+3. **Inviabilidade do Ciclo de Iteração do Coordenador Pedagógico:**
+   Na rotina acadêmica real, a montagem da grade é um processo iterativo de experimentação ("o que acontece se eu bloquear a manhã de sexta do Professor Carlos?"). Se cada teste exigir dezenas de minutos para rodar, o coordenador não consegue testar cenários. A meta-heurística permite delimitar um orçamento de tempo (*time budget* de 5 a 10 segundos), gerando uma solução viável e de altíssima qualidade de forma imediata.
+
+### Comparativo Arquitetural: MILP Exato vs. Meta-heurísticas
+
+| Dimensão de Análise | Solver MILP Exato (PuLP / CBC / Gurobi) | Solver Heurístico / Meta-heurística |
+| :--- | :--- | :--- |
+| **Garantia Teórica** | Prova matemática de otimalidade global absoluta. | Não garante ótimo global provado, mas garante **viabilidade estrita** (zero conflitos) e alta qualidade. |
+| **Tempo de Execução** | **Imprevisível:** varia de segundos em instâncias simples a horas/dias em instâncias densas. | **100% Previsível e Delimitado:** controlado por *time budget* (ex: 5s) ou limite de gerações. |
+| **Consumo de Memória** | Alto risco de explosão exponencial da árvore de nós (*Branch-and-Bound*). | Estável e constante ao longo de todas as iterações (mantém população/grade corrente). |
+| **Comportamento na Web** | Bloqueia conexões HTTP, exigindo fila assíncrona pesada e longa espera. | Permite feedback visual e interativo em poucos segundos na interface. |
+| **Flexibilidade de Regras** | Restrições não-lineares precisam ser artificialmente linearizadas com variáveis binárias extras. | Qualquer regra de negócio ou penalidade pode ser programada diretamente em Python na função de custo (*fitness*). |
 
 **Decisão tomada:** Adotar uma abordagem baseada em Heurísticas e Meta-heurísticas (como Algoritmo Construtivo Guloso com Busca Local / Algoritmo Genético) no módulo `backend/solver/`.
 - Permite processar grandes volumes de dados mantendo o tempo de execução delimitado por um orçamento de tempo (*time budget*) ou limite de iterações configurável.
@@ -68,6 +93,7 @@
 **Trade-off aceito:** Abre-se mão da prova formal de otimalidade matemática absoluta em troca de altíssima escalabilidade computacional para grandes volumes de dados, tempo de resposta previsível para o usuário da aplicação web e facilidade de ajuste empírico dos pesos das restrições de negócio.
 
 **Status:** **decisão vigente.**
+
 
 ---
 
