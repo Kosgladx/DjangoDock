@@ -13,21 +13,39 @@ Durante o mês de Setembro de 2026, a equipe realizou a estruturação fundacion
 
 ---
 
-## 2. Entregas Técnicas Consolidadas
+## 2. Entregas Técnicas Consolidadas & Panorama da Engenharia do Repositório
 
-### 2.1. Arquitetura do Repositório & Higiene de Código
-- **Unificação em Monorepo:** Estruturação padronizada das pastas `backend/` (Django REST Framework), `frontend/` (React/Vite/TypeScript) e `docs/` (Engenharia de Software).
-- **Isolamento de Credenciais:** Configuração de leitor nativo de variáveis de ambiente (`backend/.env`) e modelo versionado (`backend/.env.example`).
-- **Prevenção de Conflitos no Git:** Adição do banco SQLite local (`db.sqlite3`) ao `.gitignore`, impedindo conflitos binários de merge entre os desenvolvedores.
+### 2.1. Arquitetura do Repositório & Higiene Estrutural (Monorepo Limpo)
+- **Eliminação de Redundâncias:** Remoção de diretórios aninhados legados (`django_project`) e promoção do projeto para a raiz `TimeTabling/`, consolidando um Monorepo unificado com três frentes bem delimitadas:
+  - `backend/`: API REST em Django e Django REST Framework.
+  - `frontend/`: Single Page Application (SPA) em React 18, Vite e TypeScript.
+  - `docs/`: Documentação viva de Engenharia de Software e modelagem relacional.
+- **Preservação Histórica:** Todos os commits anteriores de cada membro da equipe (Lucas e Pedro) foram integralmente preservados no histórico do Git.
+- **Isolamento de Credenciais:** Configuração de leitor nativo de variáveis de ambiente (`backend/.env`) e disponibilização de um modelo versionado seguro (`backend/.env.example`).
+- **Blindagem do Git contra Conflitos Binários:** Adição do banco de dados local SQLite (`*.sqlite3` e `db.sqlite3`) ao `.gitignore`. O banco agora é gerado e populado on-the-fly, eliminando 100% dos conflitos de merge de arquivos binários entre os desenvolvedores.
 
-### 2.2. Reprodutibilidade de Ambiente & Automação
-- **Script de 1-Clique (`setup_dev.bat`):** Automação que cria o ambiente virtual `.venv`, instala dependências do `requirements.txt`, gera o `.env`, aplica migrações e popula dados de teste de forma autônoma.
-- **Scripts de Execução:** `run_backend.bat` (com auto-ativação do `.venv`) e `run_frontend.bat` (com verificação preventiva de Node/npm).
-- **Massa de Dados Idempotente (`seed_data.py`):** Comando Django nativo que popula 1 turno (6 slots), 12 disciplinas com códigos hexadecimais, 11 professores com 275 slots de disponibilidade, 2 turmas (3º Ano A e B) e os 6 parâmetros de restrições em menos de 3 segundos.
+### 2.2. Reprodutibilidade de Ambiente & Automação em 1-Clique
+- **Script Inteligente de Setup (`setup_dev.bat`):** Automação em lote para Windows que valida o executável Python no PATH, cria o ambiente virtual `.venv`, instala pacotes via `requirements.txt`, gera o `.env` inicial, roda as migrações estruturais do Django e executa a carga de dados de teste (seed).
+- **Scripts de Execução Ágil:** 
+  - `run_backend.bat`: Inicialização rápida do backend com auto-ativação inteligente do `.venv`.
+  - `run_frontend.bat`: Inicialização do frontend com checagem preventiva de Node/npm e auto-instalação de dependências.
 
-### 2.3. Paridade com Produção (Docker Compose)
-- **Container de Banco:** PostgreSQL 16 Alpine na porta `5432` com carga inicial automática via `docs/schema-postgresql.sql` e `docs/sample-dataDB.sql`.
-- **Container Web:** Imagem `python:3.12-slim-bookworm` orquestrada e integrada com live-reload da pasta `backend/`.
+### 2.3. Massa de Dados Automatizada e Idempotente (`seed_data.py`)
+- **Comando Django Nativo (`python manage.py seed_data`):** Desenvolvido em `backend/core/management/commands/seed_data.py` com suporte à codificação ASCII segura para terminais Windows (evitando falhas de CP1252).
+- **Idempotência Absoluta:** Utiliza `update_or_create` e `get_or_create`, garantindo que executar o comando uma ou cem vezes mantenha a base íntegra sem duplicar registros.
+- **Catálogo Mestre Provisionado em ~2 segundos:**
+  - 1 Turno Matutino com 6 períodos letivos e intervalo pedagógico de 20 minutos.
+  - 12 Disciplinas escolares parametrizadas com códigos e cores hexadecimais para interface.
+  - 11 Professores com limites de carga horária semanal e 275 slots de disponibilidade mapeados (incluindo restrições específicas como bloqueio de sextas-feiras).
+  - 2 Turmas escolares (3º Ano A e 3º Ano B) do Ensino Médio.
+  - 11 Demandas curriculares completas vinculadas ao 3º Ano A.
+  - 6 Parâmetros e pesos calibrados para o solver (Hard e Soft Constraints).
+- **Disparador Integrado (`--with-solver`):** Permite popular a base e já executar o algoritmo para alocar a grade com um único comando.
+
+### 2.4. Paridade com Produção e Ambientes Híbridos (Docker Compose)
+- **Container de Banco (PostgreSQL 16 Alpine):** Provisionado na porta `5432` com volumes montados em `/docker-entrypoint-initdb.d/` executando automaticamente os scripts canônicos `docs/schema-postgresql.sql` e `docs/sample-dataDB.sql`.
+- **Container Web (Django API):** Imagem conteinerizada em `python:3.12-slim-bookworm` com live-reload da pasta `backend/`.
+- **Chaveamento Transparente Multi-Database:** Configuração em `settings.py` que comuta automaticamente entre SQLite (desenvolvimento local imediato <1s) e PostgreSQL corporativo (Docker Compose) via variáveis de ambiente.
 
 ---
 
