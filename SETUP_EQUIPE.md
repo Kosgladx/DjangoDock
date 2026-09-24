@@ -136,9 +136,11 @@ Se adicionarmos uma nova configuração no projeto (ex: chave de API ou porta di
 ---
 
 ### 5. Boas Práticas para Evitar Conflitos de Git
+- **Adotamos o GitHub Flow:** Ninguém programa direto na `main`. Cada tarefa é feita em uma branch separada (`feat/...`) e entra na `main` via Pull Request no GitHub.
 - **Trabalhem em fatias separadas:** Por exemplo, enquanto um mexe nas telas do frontend (`frontend/src/`), outro mexe na lógica do backend (`backend/core/`) ou no algoritmo do solver (`backend/solver/`).
 - **Sempre puxe antes de começar o dia:** `git pull` antes de começar a codar.
 - **Commits atômicos:** Commitem alterações pequenas com mensagens claras, em vez de um "commit gigante de domingo à noite".
+- 📖 **Consulte o manual completo:** Para ver a receita passo a passo de como criar branches, abrir Pull Requests e o checklist de homologação semanal, leia o [Guia Didático de Git e Fluxo de Trabalho (docs/guia-git-fluxo-trabalho.md)](file:///c:/Users/Kauê/Documents/TimeTabling/docs/guia-git-fluxo-trabalho.md).
 
 ---
 

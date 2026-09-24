@@ -116,6 +116,7 @@ O solver reside no módulo `backend/solver/` e opera em duas etapas:
 Toda a fundamentação teórica, modelagem conceitual e registro histórico de engenharia do projeto estão versionados na pasta `docs/`:
 
 * **[Guia de Onboarding da Equipe (SETUP_EQUIPE.md)](SETUP_EQUIPE.md):** Manual rápido de setup em 1-clique, comandos do `seed_data.py`, catálogo de professores/matérias e FAQ de desenvolvimento.
+* **[Guia Didático de Git e Fluxo de Trabalho](docs/guia-git-fluxo-trabalho.md):** Manual passo a passo do GitHub Flow, receita de bolo para criar branches e Pull Requests, e checklist da Homologação Semanal.
 * **[Arquitetura de Software e Ambientes](docs/arquitetura-software.md):** Visão completa das 3 camadas (Frontend, Backend, Solver) e estratégia de ambientes híbridos (SQLite Local vs. PostgreSQL Docker).
 * **[Log de Decisões Arquiteturais (ADRs)](docs/decisoes-arquiteturais.md):** Histórico formal de decisões tomadas (Decisões 001 a 008), incluindo o comparativo matemático de complexidade entre MILP e Meta-heurísticas, segregação de demanda/alocação e arquitetura de ambientes híbrida.
 * **[Requisitos Técnicos Consolidados](docs/requisitos-timetabling-tecnico.md):** Escopo delimitado com o cliente, papéis de acesso e regras de negócio.
