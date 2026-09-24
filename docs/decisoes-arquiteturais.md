@@ -128,10 +128,33 @@ Essa complexidade resultou na rejeição do MILP em favor de Meta-heurísticas d
 
 **Status:** **decisão vigente (supera a Decisão 003).**
 
+---
+
+## Decisão 007 — Metodologia de Desenvolvimento do Solver: Design Conceitual e Prototipação em Detrimento de TDD Estrito
+
+**Contexto:** O Desenvolvimento Guiado por Testes (TDD — *Test-Driven Development*) é uma prática consagrada na Engenharia de Software para regras de negócio determinísticas e fluxos de aplicação web/CRUD (onde uma dada entrada possui um retorno exato previsível). No entanto, a construção de um motor de resolução algorítmica para o Timetabling (problema de otimização combinatória NP-difícil e estocástico) impõe desafios metodológicos singulares:
+
+1. **Natureza Não-Determinística e Ausência de Gabarito Único:** Em instâncias com dezenas de turmas e professores, não existe uma única grade horária correta, mas sim um vasto espaço de soluções viáveis com distribuições de probabilidade distintas. Formular asserções clássicas de valor fixo (`assert resultado == esperado`) antes da consolidação do modelo de busca é metodologicamente inviável.
+2. **Centralidade Crítica da Estrutura de Dados na Memória:** Em meta-heurísticas, mais de 80% da performance e viabilidade dependem da representação matemática dos dados em memória RAM (vetores, conjuntos e matrizes indexadas desacopladas do ORM do Django, permitindo avaliar milhares de trocas por segundo). Tentar impor testes antes de prototipar e validar a eficiência computacional dessa representação engessaria a experimentação algorítmica.
+3. **Inadequação do TDD na Fase Exploratória:** Escrever testes unitários rígidos antes de estabilizar a função de custo (*fitness*) e a geração construtiva gera retrabalho constante de reescrita de testes a cada calibração de pesos ou mudança na vizinhança da busca local.
+
+**Decisão tomada:** Adotar a abordagem de **Design Conceitual & Prototipação** para o núcleo do solver (`backend/solver/`), dividida em etapas deliberadas:
+- **Etapa A (Design Conceitual):** Definição matemática e arquitetural da estrutura de dados em memória, operadores de vizinhança e função de aptidão (*fitness*).
+- **Etapa B (Prototipação Funcional):** Implementação do gerador construtivo e dos passos de busca local até atingir geração de grades viáveis em tempo de execução estável.
+- **Etapa C (Blindagem por Testes de Invariantes / Property-Based Testing):** Os testes automatizados entram imediatamente após a estabilização do protótipo, atuando não sobre valores fixos arbitrários, mas verificando propriedades e invariantes inegociáveis do sistema (ex: `assert hard_violations == 0` para qualquer semente, preservação estrita da carga horária semanal e ausência de sobreposição de turmas ou docentes).
+
+**Alternativas consideradas:**
+- *TDD Estrito desde a primeira linha:* Descartado pela fricção com a natureza estocástica da heurística e pelo risco de cristalizar prematuramente estruturas de dados ineficientes.
+- *Desenvolvimento empírico sem testes posteriores:* Descartado por violar os padrões rigorosos de Engenharia de Software e deixar o sistema suscetível a regressões silenciosas em restrições fortes.
+
+**Trade-off aceito:** Posterga-se a escrita de testes unitários para o momento imediatamente posterior à validação da representação matemática em memória, ganhando agilidade analítica e clareza de modelagem, com garantia de qualidade assegurada por testes de invariantes na sequência.
+
+**Status:** **decisão vigente.**
 
 ---
 
 ## Como registrar novas decisões
+
 
 
 Ao adicionar uma entrada nova, seguir o formato:
