@@ -73,35 +73,3 @@ A Sprint 1 só será considerada concluída se:
 3. O Dornellas conseguir clicar no botão na tela React e ver a grade semanal preenchida com as matérias coloridas.
 4. Todos os 3 Pull Requests forem mesclados na `main` sem quebrar o script `setup_dev.bat`.
 5. O ambiente subir 100% liso no Docker via `docker compose up --build`.
-
----
-
-## 💬 Mensagem Pronta para o WhatsApp da Equipe
-
-*(Basta copiar o texto abaixo e enviar no grupo do WhatsApp)*
-
-```text
-Fala galera! 🚀
-Organizei o planejamento da nossa SPRINT 1, que começa amanhã (sexta 25/09) e vai até a próxima sexta (02/10).
-O foco dessa semana é colocar a grade para ser gerada e exibida na tela de ponta a ponta!
-
-Cada um tem uma fatia clara para ninguém bater cabeça no Git:
-
-👨‍💻 LUCAS (Backend & Dados):
-- Conectar a rota /api/run-solver/ para chamar o motor e salvar a grade calculada no banco (TimetableSlotAssignment).
-- Criar/ajustar a rota para o frontend consultar a grade pronta por turma.
-- Branch: feat/api-solver-integrate
-
-👨‍💻 DORNELLAS (Frontend):
-- Conectar o api.ts com o backend Django.
-- Na TimetablePage, colocar o botão de "Gerar Grade" com loading e desenhar a grade semanal consumindo os dados da API.
-- Branch: feat/ui-timetable-grid
-
-👨‍💻 KAUÊ (Solver & Líder):
-- Construir o motor algorítmico (alocação de aulas na memória sem nenhum choque de professor ou turma).
-- Fazer a homologação semanal no Docker na sexta-feira.
-- Branch: feat/solver-engine-core
-
-Lembrem-se: ninguém mexe direto na main! Criem suas branches a partir da main atualizada.
-Qualquer B.O. ou dúvida, mandem mensagem aqui no grupo na hora que a gente resolve. Vamos pra cima! 🔥
-```
