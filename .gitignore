@@ -29,6 +29,10 @@ wheels/
 .installed.cfg
 *.egg
 
+# Database (evita conflito binario em equipe)
+*.sqlite3
+db.sqlite3
+
 # Virtual Environments
 venv/
 .venv/
