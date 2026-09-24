@@ -26,6 +26,15 @@ Criamos um script que faz absolutamente tudo sozinho (cria o ambiente virtual, i
 3. Aguarde o terminal concluir (leva cerca de 1 a 2 minutos na primeira vez).
 4. Quando aparecer `TUDO PRONTO!`, pressione qualquer tecla para fechar.
 
+### O que o `setup_dev.bat` faz por você (sob o capô):
+- **Detecta o Python:** Localiza o executável no seu computador e valida o PATH.
+- **Cria o ambiente virtual (.venv):** Isola todas as dependências do projeto para não sujar o seu computador.
+- **Configura o arquivo `.env`:** Cria automaticamente o `backend\.env` baseado no modelo de exemplo (`.env.example`).
+- **Instala dependências do Python:** Baixa e instala todos os pacotes necessários de uma vez via `requirements.txt`.
+- **Prepara o banco de dados:** Executa as migrações estruturais do Django (`manage.py migrate`).
+- **Popula dados reais de teste (Seed):** Executa `manage.py seed_data`, cadastrando turnos, horários, disciplinas, professores com disponibilidades e turmas.
+- **Prepara a interface React:** Verifica se o Node.js está presente e instala as dependências da pasta `frontend/` (`npm install`).
+
 ### Como rodar no dia a dia:
 Depois do setup feito, para trabalhar no projeto você só precisa abrir dois terminais (ou dar 2 cliques nos atalhos):
 * **Backend (API Django):** Duplo clique em **`run_backend.bat`** (disponível em `http://127.0.0.1:8000`)
