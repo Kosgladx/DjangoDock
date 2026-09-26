@@ -113,11 +113,10 @@ O cliente autorizou extensões (ex: alocação de sala, múltiplos professores p
 
 ---
 
-## 9. Referências externas mencionadas pelo cliente
+## 9. Referências externas de mercado mencionadas pelo cliente
 
-- **FET** — como referência open-source (produto comercial menor, sem garantia de qualidade)
-- **Ferramentas mencionadas pelo professor: Urânia e PowerCubus**
-  - Tratar como pesquisa complementar de UX também, visto que o FET é horrível de feio
+- **Ferramentas de mercado de referência nacional: Urânia e PowerCubus**
+  - Tratar como pesquisa complementar de regras de negócio e de UX, servindo como benchmark para entregar uma interface moderna, amigável e produtiva para a coordenação pedagógica.
 
 ---
 

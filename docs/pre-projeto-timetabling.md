@@ -65,7 +65,7 @@ Do ponto de vista dos procedimentos técnicos, caracteriza-se como uma **pesquis
 
 **Universo e amostra:** O universo do estudo compreende instituições de ensino técnico/médio de porte médio. Como amostra para validação do sistema, será utilizado um conjunto de dados fornecido pelo cliente/professor, baseado em uma instituição real de referência, contendo aproximadamente 50 professores e entre 11 e 14 turmas, distribuídas nos turnos matutino e noturno.
 
-**Instrumentos de coleta de dados:** O levantamento de requisitos foi conduzido por meio de **entrevistas semiestruturadas** com o cliente/professor responsável pela definição do escopo do sistema, gravadas e posteriormente transcritas e consolidadas em documento de requisitos. Complementarmente, foi realizada **revisão bibliográfica** em livros-texto de Pesquisa Operacional, artigos científicos sobre o problema de timetabling universitário/escolar (University Course Timetabling Problem), e análise de ferramentas open-source de referência (como o software FET).
+**Instrumentos de coleta de dados:** O levantamento de requisitos foi conduzido por meio de **entrevistas semiestruturadas** com o cliente/professor responsável pela definição do escopo do sistema, gravadas e posteriormente transcritas e consolidadas em documento de requisitos. Complementarmente, foi realizada **revisão bibliográfica** em livros-texto de Pesquisa Operacional e Heurísticas Modernas, artigos científicos sobre o problema de timetabling universitário/escolar (University Course Timetabling Problem), e análise de soluções de referência de mercado no cenário nacional (como os softwares Urânia e PowerCubus).
 
 **Método de análise:** Os dados levantados nas entrevistas foram analisados de forma qualitativa, por meio de consolidação temática dos requisitos em categorias (papéis de usuário, entidades de dados, restrições fortes e fracas, requisitos não-funcionais). A validação do sistema desenvolvido será realizada de forma quantitativa, por meio da execução do solver sobre instâncias de teste de complexidade crescente, medindo-se tempo de execução, viabilidade da solução encontrada e número de restrições fracas violadas na solução final.
 
@@ -92,11 +92,15 @@ Do ponto de vista dos procedimentos técnicos, caracteriza-se como uma **pesquis
 
 ## Referências
 
-FET — Free Timetabling Software. Disponível em: https://lalescu.ro/liviu/fet/. Acesso em: 2026.
-
 HILLIER, Frederick S.; LIEBERMAN, Gerald J. **Introduction to Operations Research**. Nova York: McGraw-Hill Education.
 
 MASSACHUSETTS INSTITUTE OF TECHNOLOGY. **15.083J — Integer Programming and Combinatorial Optimization**. MIT OpenCourseWare. Disponível em: https://ocw.mit.edu/. Acesso em: 2026.
+
+MICHALEWICZ, Zbigniew; FOGEL, David B. **How to Solve It: Modern Heuristics**. 2. ed. Berlim: Springer-Verlag, 2004.
+
+POWERCUBUS. **Software de Criação de Horários Escolares**. Disponível em: https://www.powercubus.com.br/. Acesso em: 2026.
+
+URÂNIA. **Sistema de Elaboração de Horários Escolares**. Disponível em: https://www.urania.com.br/. Acesso em: 2026.
 
 PULP — Python Linear Programming Library. Documentação oficial. Disponível em: https://coin-or.github.io/pulp/. Acesso em: 2026.
 

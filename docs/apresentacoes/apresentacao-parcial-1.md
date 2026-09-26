@@ -175,9 +175,10 @@
 * **Título:** Referências & Agradecimento
 * **Tópicos Visuais:**
   * **Principais Referências:**
-    * LALESCU, L. **FET: Free Timetabling Software**. 2026.
+    * MICHALEWICZ, Z.; FOGEL, D. B. **How to Solve It: Modern Heuristics**. Springer-Verlag, 2004.
     * HILLIER, F. S.; LIEBERMAN, G. J. **Introduction to Operations Research**. McGraw-Hill.
     * MASSACHUSETTS INSTITUTE OF TECHNOLOGY (MIT). **Integer Programming and Combinatorial Optimization**. MIT OpenCourseWare.
+    * POWERCUBUS & URÂNIA: Softwares de referência de mercado para geração de horários escolares.
     * GAMMA, E. et al. **Design Patterns: Elements of Reusable Object-Oriented Software**.
   * **Agradecimento:**
     * Agradecemos ao nosso orientador pelo suporte contínuo, à banca avaliadora pela presença e contribuições, e à faculdade pela oportunidade.
