@@ -58,7 +58,7 @@ echo.
 
 :: 4. Instalando dependencias do backend
 echo [4/6] Instalando dependencias Python (backend\requirements.txt)...
-call .venv\Scripts\pip.exe install -r backend\requirements.txt
+call .venv\Scripts\python.exe -m pip install -r backend\requirements.txt
 if %ERRORLEVEL% neq 0 (
     echo [ERRO] Falha ao instalar dependencias do backend.
     pause
