@@ -24,8 +24,14 @@ Conectar a primeira **fatia vertical completa** do sistema:
 ├──────────────────────────┼───────────────────────────┼──────────────────────────┤
 │ Branch:                  │ Branch:                   │ Branch:                  │
 │ feat/solver-engine-core  │ feat/api-solver-integrate │ feat/ui-timetable-grid   │
+├──────────────────────────┼───────────────────────────┼──────────────────────────┤
+│ Papel no Git:            │ Papel no Git:             │ Papel no Git:            │
+│ Gatekeeper / Reviewer    │ Cria PR para a `main`     │ Cria PR para a `main`    │
+│ Merge & Homologação      │ NÃO faz merge direto      │ NÃO faz merge direto     │
 └──────────────────────────┴───────────────────────────┴──────────────────────────┘
 ```
+
+> 🛡️ **Fluxo de Integração da Sprint:** A branch `main` atua como **Release**. Lucas e Pedro trabalham em suas branches e abrem seus Pull Requests até quinta-feira. Na sexta-feira (02/10), Kauê revisa os PRs, roda os testes de homologação com Docker e faz os merges na `main`.
 
 ---
 

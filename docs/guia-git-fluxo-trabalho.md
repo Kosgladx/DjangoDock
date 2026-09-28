@@ -76,11 +76,12 @@ git push -u origin NOME-DA-SUA-BRANCH
 3. Escreva um resumo rápido:
    - *O que foi feito?* (ex: "Criei a tela de cadastro e conectei com o backend").
    - *Como testar?* (ex: "Abra a rota /professores e teste clicar em salvar").
-4. Marque seus colegas (Lucas ou Pedro) como **Reviewers**.
-5. O colega entra no link, clica em **Review changes** $\rightarrow$ **Approve** $\rightarrow$ **Merge pull request**.
-6. **Pronto!** O código foi integrado à `main` com segurança total!
+4. Marque o **Kauê (Tech Lead)** como **Reviewer**.
+5. ⚠️ **REGRA DE OURO:** O desenvolvedor **NÃO clica em Merge**! O código fica seguro aguardando a revisão.
+6. Na sexta-feira, o Tech Lead valida a integração no ritual de homologação e realiza o **Merge na `main`**.
+7. **Pronto!** A `main` permanece como nossa versão de **Release Estável**, sem risco de quebrar o trabalho de ninguém!
 
-Depois que o PR for aprovado, você volta para a sua `main` local e puxa as novidades:
+Depois que o PR for aprovado e integrado pelo Tech Lead, você volta para a sua `main` local e puxa as novidades:
 ```powershell
 git checkout main
 git pull origin main
