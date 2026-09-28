@@ -1,7 +1,0 @@
-# Cursor Rules — EduSchedule Timetabling
-
-Please read `GEMINI.md` and `AGENTS.md` in the project root.
-
-1. Setup: When asked to setup ("faça o setup", "arrume a casa", "inicie"), run Python venv setup, migrate, seed_data, and npm install in frontend/.
-2. Branch Protection: Never commit to `main`. Always work in the feature branch (`feat/...`).
-3. Task Completion: Run `npm run build` or `manage.py check` before pushing. Push to `origin <branch>` and tell the developer to open a Pull Request assigning Kauê Loreno as Reviewer. DO NOT merge into `main`.
