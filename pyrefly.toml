@@ -1,0 +1,10 @@
+search-path = [
+    "backend",
+]
+project-includes = [
+    "backend/**/*.py",
+]
+project-excludes = [
+    "**/.venv/**",
+    "**/node_modules/**",
+]
