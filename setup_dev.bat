@@ -90,11 +90,18 @@ echo [6/6] Verificando dependencias do frontend...
 where npm >nul 2>nul
 if %ERRORLEVEL% neq 0 (
     echo [AVISO] Node.js/npm nao foi detectado no PATH do sistema.
-    echo O backend esta 100%% configurado e pronto.
-    echo Para rodar o frontend React/Vite:
-    echo   1. Instale o Node.js LTS em https://nodejs.org/
-    echo   2. Abra o terminal na pasta frontend e execute: npm install
-) else (
+    where winget >nul 2>nul
+    if !ERRORLEVEL! equ 0 (
+        echo [AUTO] Instalando Node.js LTS automaticamente via winget...
+        winget install --id OpenJS.NodeJS.LTS -e --accept-source-agreements --accept-package-agreements
+        if exist "%ProgramFiles%\nodejs" (
+            set "PATH=%ProgramFiles%\nodejs;!PATH!"
+        )
+    )
+)
+
+where npm >nul 2>nul
+if %ERRORLEVEL% equ 0 (
     if exist "frontend\package.json" (
         echo Instalando pacotes do frontend...
         pushd frontend
@@ -102,6 +109,9 @@ if %ERRORLEVEL% neq 0 (
         popd
         echo [OK] Dependencias do frontend instaladas.
     )
+) else (
+    echo [AVISO] Node.js nao detectado nesta sessao do terminal.
+    echo Apos o termino da instalacao, reinicie o terminal para usar o npm.
 )
 echo.
 

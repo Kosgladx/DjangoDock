@@ -11,7 +11,7 @@ if exist ".venv\Scripts\python.exe" (
 ) else if exist "backend\.venv\Scripts\python.exe" (
     set PYTHON_EXEC=backend\.venv\Scripts\python.exe
 ) else (
-    echo [AVISO] Ambiente virtual (.venv) nao foi encontrado!
+    echo [AVISO] Ambiente virtual .venv nao foi encontrado!
     echo Execute o script "setup_dev.bat" na raiz para preparar o ambiente.
     echo.
     set PYTHON_EXEC=python
