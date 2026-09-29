@@ -27,24 +27,22 @@ export function App() {
   const [schedule, setSchedule] = useState<TimetableSchedule | null>(null);
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [rooms, setRooms] = useState<ClassRoom[]>([]);
+  const [rooms] = useState<ClassRoom[]>([]);
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
 
   const loadAllData = async () => {
     try {
       setLoading(true);
-      const [classesRes, teachersRes, roomsRes, slotsRes, shiftsRes] = await Promise.all([
+      const [classesRes, teachersRes, slotsRes, shiftsRes] = await Promise.all([
         api.getClasses(),
         api.getTeachers(),
-        api.getRooms(),
         api.getSlots(),
         api.getShifts(),
       ]);
 
       setClasses(classesRes);
       setTeachers(teachersRes);
-      setRooms(roomsRes);
       setSlots(slotsRes);
       setShifts(shiftsRes);
 
