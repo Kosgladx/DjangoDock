@@ -30,7 +30,7 @@ if %ERRORLEVEL% neq 0 (
     exit /b 1
 )
 
-cd /d "%~dp0\frontend"
+cd /d "%~dp0frontend"
 if not exist "node_modules" (
     echo Instalando dependencias do frontend pela primeira vez...
     call npm install

@@ -31,9 +31,9 @@ echo.
 
 :: 2. Criando ou verificando o ambiente virtual (.venv)
 echo [2/6] Configurando ambiente virtual (.venv)...
-if not exist ".venv" (
+if not exist "%~dp0.venv" (
     echo Criando ambiente virtual em .venv...
-    %PYTHON_CMD% -m venv .venv
+    "%PYTHON_CMD%" -m venv "%~dp0.venv"
     if %ERRORLEVEL% neq 0 (
         echo [ERRO] Falha ao criar ambiente virtual .venv.
         pause
@@ -47,9 +47,9 @@ echo.
 
 :: 3. Configurando arquivo de ambiente (.env)
 echo [3/6] Verificando variaveis de ambiente (.env)...
-if not exist "backend\.env" (
-    if exist "backend\.env.example" (
-        copy "backend\.env.example" "backend\.env" >nul
+if not exist "%~dp0backend\.env" (
+    if exist "%~dp0backend\.env.example" (
+        copy "%~dp0backend\.env.example" "%~dp0backend\.env" >nul
         echo [OK] backend\.env criado a partir de backend\.env.example.
     ) else (
         echo [AVISO] backend\.env.example nao encontrado.
@@ -61,7 +61,7 @@ echo.
 
 :: 4. Instalando dependencias do backend
 echo [4/6] Instalando dependencias Python (backend\requirements.txt)...
-call .venv\Scripts\python.exe -m pip install -r backend\requirements.txt
+call "%~dp0.venv\Scripts\python.exe" -m pip install -r "%~dp0backend\requirements.txt"
 if %ERRORLEVEL% neq 0 (
     echo [ERRO] Falha ao instalar dependencias do backend.
     pause
@@ -72,7 +72,7 @@ echo.
 
 :: 5. Executando migracoes e populando banco de dados
 echo [5/6] Preparando banco de dados...
-call .venv\Scripts\python.exe backend\manage.py migrate
+call "%~dp0.venv\Scripts\python.exe" "%~dp0backend\manage.py" migrate
 if %ERRORLEVEL% neq 0 (
     echo [ERRO] Falha ao executar migracoes no banco de dados.
     pause
@@ -80,7 +80,7 @@ if %ERRORLEVEL% neq 0 (
 )
 echo.
 echo Populando dados iniciais (seed)...
-call .venv\Scripts\python.exe backend\manage.py seed_data
+call "%~dp0.venv\Scripts\python.exe" "%~dp0backend\manage.py" seed_data
 if %ERRORLEVEL% neq 0 (
     echo [ERRO] Falha ao popular dados iniciais.
     pause
@@ -105,9 +105,9 @@ if %ERRORLEVEL% neq 0 (
 
 where npm >nul 2>nul
 if %ERRORLEVEL% equ 0 (
-    if exist "frontend\package.json" (
+    if exist "%~dp0frontend\package.json" (
         echo Instalando pacotes do frontend...
-        pushd frontend
+        pushd "%~dp0frontend"
         call npm install
         popd
         echo [OK] Dependencias do frontend instaladas.
