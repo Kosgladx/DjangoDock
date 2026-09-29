@@ -1,6 +1,9 @@
 @echo off
 setlocal enabledelayedexpansion
 
+:: Garante que o diretorio de trabalho seja sempre a raiz do projeto onde o script reside
+cd /d "%~dp0"
+
 echo ========================================================
 echo    EduSchedule Timetabling - Setup de Desenvolvimento
 echo ========================================================

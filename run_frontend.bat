@@ -1,5 +1,8 @@
 @echo off
 setlocal
+
+:: Garante que o diretorio de trabalho inicial seja a raiz do projeto
+cd /d "%~dp0"
 echo ===================================================
 echo Iniciando Frontend React (EduSchedule AI UI)...
 echo ===================================================
