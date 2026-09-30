@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import type { TimetableSchedule, SchoolClass, Teacher, ClassRoom, TimeSlot, Subject } from '../types';
-import { CheckSquare, Plus, Trash2, Sparkles, Loader2, RefreshCw, CheckCircle2, Calendar, AlertTriangle } from 'lucide-react';
+import {
+  CheckSquare, Plus, Trash2, Sparkles, Loader2, RefreshCw, CheckCircle2,
+  Calendar, AlertTriangle, Users, BookOpen, Clock
+} from 'lucide-react';
 import { ManualLessonModal } from '../components/ManualLessonModal';
 import { api, runSolver } from '../services/api';
 
@@ -15,6 +18,11 @@ interface TimetablePageProps {
   onRefresh?: () => void;
   isSolving?: boolean;
 }
+
+const DEFAULT_CLASSES: SchoolClass[] = [
+  { id: 1, name: '3º Ano A', grade_level: '3º Ano Ensino Médio', shift: 1, student_count: 35, total_weekly_lessons: 25 },
+  { id: 2, name: '3º Ano B', grade_level: '3º Ano Ensino Médio', shift: 1, student_count: 32, total_weekly_lessons: 25 },
+];
 
 const DEFAULT_SLOTS: TimeSlot[] = [
   { id: 1, shift: 1, order: 1, name: '1º Período', start_time: '07:15:00', end_time: '08:05:00', duration_minutes: 50, is_break: false, allow_double_lesson: true, requires_lab: false },
@@ -37,10 +45,11 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({
   onRefresh,
   isSolving = false
 }) => {
+  const effectiveClasses = classes.length > 0 ? classes : DEFAULT_CLASSES;
   const effectiveSlots = slots.length > 0 ? slots : DEFAULT_SLOTS;
 
   const [viewMode, setViewMode] = useState<'turma' | 'prof' | 'sala'>('turma');
-  const [selectedEntityId, setSelectedEntityId] = useState<number>(classes[0]?.id || 1);
+  const [selectedEntityId, setSelectedEntityId] = useState<number>(effectiveClasses[0]?.id || 1);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [internalSolving, setInternalSolving] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -111,8 +120,11 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({
     { id: 4, name: 'Sexta-feira', shortName: 'Sex' },
   ];
 
-  const filteredAssignments = schedule?.assignments.filter(a => {
-    if (viewMode === 'turma') return a.school_class === selectedEntityId;
+  const filteredAssignments = schedule?.assignments?.filter(a => {
+    if (viewMode === 'turma') {
+      const selectedClass = effectiveClasses.find(c => c.id === selectedEntityId);
+      return a.school_class === selectedEntityId || (selectedClass && a.class_name === selectedClass.name);
+    }
     if (viewMode === 'prof') return a.teacher === selectedEntityId;
     if (viewMode === 'sala') return a.room === selectedEntityId;
     return true;
@@ -124,6 +136,9 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({
       (a.time_slot === slot.id || a.slot_order === slot.order)
     );
   };
+
+  const selectedClassName = effectiveClasses.find(c => c.id === selectedEntityId)?.name || '3º Ano A';
+  const totalAllocatedForCurrentView = filteredAssignments.length;
 
   return (
     <div className="space-y-6">
@@ -194,115 +209,149 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({
         </div>
       )}
 
+      {/* KPI Stats Cards */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs hover:border-indigo-200 transition">
           <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-            <span>Score de Viabilidade</span>
-            <span className="text-emerald-600 font-bold">{schedule?.viability_score || 98.4}%</span>
+            <span className="font-semibold">Score de Viabilidade</span>
+            <span className="text-emerald-600 font-bold">{schedule?.viability_score ?? 98.4}%</span>
           </div>
-          <div className="text-2xl font-extrabold text-slate-900">Ótimo</div>
+          <div className="text-2xl font-extrabold text-slate-900 flex items-center gap-1.5">
+            <span>{schedule?.viability_score && schedule.viability_score >= 95 ? 'Excelente' : 'Ótimo'}</span>
+            <CheckCircle2 className="w-5 h-5 text-emerald-500 inline" />
+          </div>
           <div className="w-full bg-slate-100 rounded-full h-1.5 mt-3 overflow-hidden">
-            <div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: `${schedule?.viability_score || 98.4}%` }}></div>
+            <div
+              className="bg-emerald-500 h-1.5 rounded-full transition-all duration-500"
+              style={{ width: `${schedule?.viability_score ?? 98.4}%` }}
+            ></div>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs hover:border-emerald-200 transition">
           <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-            <span>Restrições Rígidas (Hard)</span>
-            <span className="text-emerald-600 font-bold">{schedule?.hard_violations_count || 0} violações</span>
+            <span className="font-semibold">Restrições Rígidas (Hard)</span>
+            <span className="text-emerald-600 font-bold">{schedule?.hard_violations_count ?? 0} violações</span>
           </div>
-          <div className="text-2xl font-extrabold text-emerald-600">100% Atendido</div>
-          <p className="text-[11px] text-slate-500 mt-2">Sem choques de professor ou sala</p>
+          <div className="text-2xl font-extrabold text-emerald-600">0 Choques</div>
+          <p className="text-[11px] text-slate-500 mt-2">Sem colisões de horários de docentes ou turmas</p>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs hover:border-amber-200 transition">
           <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-            <span>Restrições Flexíveis (Soft)</span>
-            <span className="text-amber-600 font-bold">1 janela vaga</span>
+            <span className="font-semibold">Penalidades Suaves (Soft)</span>
+            <span className="text-amber-600 font-bold">{schedule?.soft_penalties_score ?? 0} pts</span>
           </div>
-          <div className="text-2xl font-extrabold text-amber-600">95.2%</div>
-          <p className="text-[11px] text-slate-500 mt-2">1 janela identificada (Prof. Carlos)</p>
+          <div className="text-2xl font-extrabold text-amber-600">
+            {schedule?.soft_penalties_score === 0 ? 'Perfeita' : '95.2% Conforto'}
+          </div>
+          <p className="text-[11px] text-slate-500 mt-2">Janelas ociosas minimizadas e aulas geminadas</p>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs hover:border-indigo-200 transition">
           <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-            <span>Aulas Alocadas</span>
-            <span className="text-indigo-600 font-bold">{schedule?.assignments?.length || 0} / 25</span>
+            <span className="font-semibold">Aulas Alocadas ({selectedClassName})</span>
+            <span className="text-indigo-600 font-bold">{totalAllocatedForCurrentView} / 25 aulas</span>
           </div>
           <div className="text-2xl font-extrabold text-slate-900">
-            {schedule?.assignments?.length ? 'Grade Carregada' : 'Aguardando Solver'}
+            {totalAllocatedForCurrentView > 0 ? `${totalAllocatedForCurrentView} Aulas` : 'Aguardando Solver'}
           </div>
-          <p className="text-[11px] text-slate-500 mt-2">{classes.length} Turmas • {teachers.length} Professores • {rooms.length} Salas</p>
+          <p className="text-[11px] text-slate-500 mt-2">
+            {effectiveClasses.length} Turmas • {teachers.length} Professores • {effectiveSlots.filter(s => !s.is_break).length} Períodos/dia
+          </p>
         </div>
       </section>
 
+      {/* Control Bar with Class / Entity Filter (Tarefa D4) */}
       <section className="bg-white p-4 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-4 shadow-xs">
         <div className="flex flex-wrap items-center gap-3">
-          <label className="text-xs font-semibold text-slate-500">Visualização:</label>
-          
-          <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-100 text-xs">
-            <button
-              onClick={() => { setViewMode('turma'); setSelectedEntityId(classes[0]?.id || 1); }}
-              className={`px-3 py-1 rounded-md font-semibold transition cursor-pointer ${
-                viewMode === 'turma' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Por Turma
-            </button>
-            <button
-              onClick={() => { setViewMode('prof'); setSelectedEntityId(teachers[0]?.id || 1); }}
-              className={`px-3 py-1 rounded-md font-semibold transition cursor-pointer ${
-                viewMode === 'prof' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Por Professor
-            </button>
-            <button
-              onClick={() => { setViewMode('sala'); setSelectedEntityId(rooms[0]?.id || 1); }}
-              className={`px-3 py-1 rounded-md font-semibold transition cursor-pointer ${
-                viewMode === 'sala' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Por Sala
-            </button>
+          <div className="flex items-center space-x-2">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Visualização:</label>
+            <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-100 text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setViewMode('turma');
+                  setSelectedEntityId(effectiveClasses[0]?.id || 1);
+                }}
+                className={`px-3 py-1.5 rounded-md font-semibold transition cursor-pointer flex items-center space-x-1 ${
+                  viewMode === 'turma' ? 'bg-white text-indigo-600 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>Por Turma</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setViewMode('prof');
+                  if (teachers[0]) setSelectedEntityId(teachers[0].id);
+                }}
+                className={`px-3 py-1.5 rounded-md font-semibold transition cursor-pointer flex items-center space-x-1 ${
+                  viewMode === 'prof' ? 'bg-white text-indigo-600 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Por Professor</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setViewMode('sala');
+                  if (rooms[0]) setSelectedEntityId(rooms[0].id);
+                }}
+                className={`px-3 py-1.5 rounded-md font-semibold transition cursor-pointer flex items-center space-x-1 ${
+                  viewMode === 'sala' ? 'bg-white text-indigo-600 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>Por Sala</span>
+              </button>
+            </div>
           </div>
 
-          <select
-            value={selectedEntityId}
-            onChange={(e) => setSelectedEntityId(Number(e.target.value))}
-            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            {viewMode === 'turma' && classes.map(c => (
-              <option key={c.id} value={c.id}>📚 {c.name} - {c.grade_level}</option>
-            ))}
-            {viewMode === 'prof' && teachers.map(t => (
-              <option key={t.id} value={t.id}>👨‍🏫 {t.name}</option>
-            ))}
-            {viewMode === 'sala' && rooms.map(r => (
-              <option key={r.id} value={r.id}>🏢 {r.name} ({r.block})</option>
-            ))}
-          </select>
+          {/* Dropdown de Seleção de Turma (Tarefa D4) */}
+          <div className="flex items-center space-x-2">
+            <label htmlFor="select-class-filter" className="text-xs font-semibold text-slate-500">
+              {viewMode === 'turma' ? 'Turma:' : viewMode === 'prof' ? 'Docente:' : 'Espaço:'}
+            </label>
+            <select
+              id="select-class-filter"
+              value={selectedEntityId}
+              onChange={(e) => setSelectedEntityId(Number(e.target.value))}
+              className="bg-indigo-50/60 hover:bg-indigo-50 border border-indigo-200 text-indigo-950 font-bold rounded-lg px-3.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-2xs"
+            >
+              {viewMode === 'turma' && effectiveClasses.map(c => (
+                <option key={c.id} value={c.id}>
+                  📚 {c.name} {c.grade_level ? `(${c.grade_level})` : ''}
+                </option>
+              ))}
+              {viewMode === 'prof' && teachers.map(t => (
+                <option key={t.id} value={t.id}>👨‍🏫 {t.name}</option>
+              ))}
+              {viewMode === 'sala' && rooms.map(r => (
+                <option key={r.id} value={r.id}>🏢 {r.name} ({r.block})</option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        <div className="flex items-center space-x-3 text-xs">
+        <div className="flex flex-wrap items-center gap-3 text-xs">
           <span className="flex items-center space-x-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-            <span className="text-slate-600">Sem conflitos</span>
+            <span className="text-slate-600 font-medium">Sem conflitos</span>
           </span>
           <span className="flex items-center space-x-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
-            <span className="text-slate-600">Aviso / Janela vaga</span>
+            <span className="text-slate-600 font-medium">Aviso de janela</span>
           </span>
-          <span className="flex items-center space-x-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-            <span className="text-slate-600">Choque de horário</span>
-          </span>
-          <button 
+          <button
+            type="button"
             onClick={() => handleOpenManualModal()}
-            className="flex items-center space-x-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold px-2.5 py-1 rounded-md border border-indigo-200 text-xs transition cursor-pointer"
+            className="flex items-center space-x-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold px-3 py-1.5 rounded-lg border border-indigo-200 text-xs transition cursor-pointer shadow-2xs"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Adicionar Aula Manual</span>
+            <span>Alocação Manual</span>
           </button>
         </div>
       </section>
@@ -570,7 +619,7 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({
       <ManualLessonModal
         isOpen={isManualModalOpen}
         onClose={() => setIsManualModalOpen(false)}
-        classes={classes}
+        classes={effectiveClasses}
         teachers={teachers}
         rooms={rooms}
         slots={effectiveSlots}
