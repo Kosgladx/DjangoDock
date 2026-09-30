@@ -84,6 +84,7 @@ export interface ConstraintConfig {
 
 export interface TimetableSlotAssignment {
   id: number;
+  timetable_schedule?: number;
   school_class: number;
   class_name: string;
   day_of_week: number;
