@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import type { TimetableSchedule, SchoolClass, Teacher, ClassRoom, TimeSlot, Subject } from '../types';
-import { CheckSquare, Plus, Trash2 } from 'lucide-react';
+import { CheckSquare, Plus, Trash2, Sparkles, Loader2, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { ManualLessonModal } from '../components/ManualLessonModal';
-import { api } from '../services/api';
+import { api, runSolver } from '../services/api';
 
 interface TimetablePageProps {
   schedule: TimetableSchedule | null;
@@ -11,7 +11,7 @@ interface TimetablePageProps {
   rooms: ClassRoom[];
   slots: TimeSlot[];
   subjects?: Subject[];
-  onRunSolver?: () => void;
+  onRunSolver?: () => Promise<void> | void;
   onRefresh?: () => void;
   isSolving?: boolean;
 }
@@ -23,11 +23,16 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({
   rooms,
   slots,
   subjects,
-  onRefresh
+  onRunSolver,
+  onRefresh,
+  isSolving = false
 }) => {
   const [viewMode, setViewMode] = useState<'turma' | 'prof' | 'sala'>('turma');
   const [selectedEntityId, setSelectedEntityId] = useState<number>(classes[0]?.id || 1);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const [internalSolving, setInternalSolving] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
   const [selectedSlotContext, setSelectedSlotContext] = useState<{
     dayId?: number;
     slotId?: number;
@@ -40,6 +45,30 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({
   const [doubleWeight, setDoubleWeight] = useState(90);
   const [balanceWeight, setBalanceWeight] = useState(70);
   const [concentrationWeight, setConcentrationWeight] = useState(60);
+
+  const solvingActive = isSolving || internalSolving;
+
+  const handleGenerateTimetable = async () => {
+    if (solvingActive) return;
+
+    if (onRunSolver) {
+      await onRunSolver();
+      return;
+    }
+
+    try {
+      setInternalSolving(true);
+      setStatusMessage('Otimizando alocação com motor IA...');
+      const res = await runSolver('Grade Oficial 2026.1 (IA Timetabling)', '1º Semestre 2026');
+      setStatusMessage(`Grade gerada com sucesso! Viabilidade: ${res.viability_score || 100}%`);
+      if (onRefresh) onRefresh();
+    } catch (err: any) {
+      alert('Erro ao executar solver: ' + err.message);
+    } finally {
+      setInternalSolving(false);
+      setTimeout(() => setStatusMessage(null), 5000);
+    }
+  };
 
   const handleOpenManualModal = (dayId?: number, slotId?: number) => {
     setSelectedSlotContext({
@@ -83,6 +112,73 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Action Banner with Generate Timetable Button (Tarefa D2) */}
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 rounded-2xl shadow-lg border border-indigo-900/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center space-x-2 text-indigo-300 text-xs font-semibold uppercase tracking-wider mb-1">
+            <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
+            <span>EduSchedule • Motor Construtivo Guloso com IA</span>
+          </div>
+          <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+            Grade Semanal de Horários
+            {schedule && (
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                Ativa: {schedule.semester || '2026.1'}
+              </span>
+            )}
+          </h1>
+          <p className="text-xs text-slate-300 mt-1 max-w-2xl">
+            Otimização matemática sem choques de professores ou turmas, com respeito estrito à matriz curricular e indisponibilidades docentes.
+          </p>
+        </div>
+
+        <div className="flex items-center space-x-3 shrink-0">
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              disabled={solvingActive}
+              className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/10 transition cursor-pointer disabled:opacity-50"
+              title="Atualizar dados da API"
+            >
+              <RefreshCw className={`w-4 h-4 ${solvingActive ? 'animate-spin' : ''}`} />
+            </button>
+          )}
+
+          <button
+            id="btn-generate-timetable"
+            onClick={handleGenerateTimetable}
+            disabled={solvingActive}
+            className={`px-5 py-3 rounded-xl font-bold text-sm text-white transition-all shadow-md flex items-center space-x-2.5 cursor-pointer ${
+              solvingActive
+                ? 'bg-indigo-700/80 cursor-not-allowed opacity-90'
+                : 'bg-gradient-to-r from-indigo-500 via-indigo-600 to-violet-600 hover:from-indigo-400 hover:to-violet-500 hover:shadow-indigo-500/30 hover:scale-[1.02] active:scale-[0.98]'
+            }`}
+          >
+            {solvingActive ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                <span>Gerando Grade Automática...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 text-amber-300" />
+                <span>Gerar Grade Automática</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {statusMessage && (
+        <div className="bg-indigo-50 border border-indigo-200 text-indigo-900 px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between">
+          <span className="flex items-center space-x-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <span>{statusMessage}</span>
+          </span>
+          <button onClick={() => setStatusMessage(null)} className="text-indigo-400 hover:text-indigo-700">✕</button>
+        </div>
+      )}
+
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
