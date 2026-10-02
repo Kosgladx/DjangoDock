@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
@@ -99,8 +100,50 @@ class ConstraintConfigViewSet(viewsets.ModelViewSet):
 class TimetableSlotAssignmentViewSet(viewsets.ModelViewSet):
     queryset = TimetableSlotAssignment.objects.select_related(
         'timetable_schedule', 'school_class', 'time_slot', 'subject', 'teacher'
-    ).all()
+    ).order_by('day_of_week', 'time_slot__order')
     serializer_class = TimetableSlotAssignmentSerializer
+
+    def get_queryset(self):
+        """
+        Permite filtrar a listagem geral de alocações (Tarefa L3).
+        Suporta os query params:
+          - schedule_id (ou timetable_schedule / active)
+          - school_class_id (ou class_id / school_class)
+          - teacher_id (ou teacher)
+          - day_of_week (ou day)
+        """
+        qs = super().get_queryset()
+        schedule_id = (
+            self.request.query_params.get('schedule_id')
+            or self.request.query_params.get('timetable_schedule')
+            or self.request.query_params.get('timetable_schedule_id')
+        )
+        if schedule_id:
+            if schedule_id == 'active' or str(schedule_id).lower() == 'active':
+                qs = qs.filter(timetable_schedule__is_active=True)
+            else:
+                qs = qs.filter(timetable_schedule_id=schedule_id)
+
+        school_class_id = (
+            self.request.query_params.get('school_class_id')
+            or self.request.query_params.get('class_id')
+            or self.request.query_params.get('school_class')
+        )
+        if school_class_id:
+            qs = qs.filter(school_class_id=school_class_id)
+
+        teacher_id = (
+            self.request.query_params.get('teacher_id')
+            or self.request.query_params.get('teacher')
+        )
+        if teacher_id:
+            qs = qs.filter(teacher_id=teacher_id)
+
+        day_of_week = self.request.query_params.get('day_of_week') or self.request.query_params.get('day')
+        if day_of_week is not None and day_of_week != '':
+            qs = qs.filter(day_of_week=day_of_week)
+
+        return qs
 
     def create(self, request, *args, **kwargs):
         schedule_id = request.data.get('timetable_schedule')
@@ -131,9 +174,11 @@ class TimetableSlotAssignmentViewSet(viewsets.ModelViewSet):
 
 
 class TimetableScheduleViewSet(viewsets.ModelViewSet):
-    queryset = TimetableSchedule.objects.prefetch_related('assignments__subject', 'assignments__teacher', 'assignments__time_slot', 'assignments__school_class').all()
+    queryset = TimetableSchedule.objects.prefetch_related(
+        'assignments__subject', 'assignments__teacher',
+        'assignments__time_slot', 'assignments__school_class'
+    ).all()
     serializer_class = TimetableScheduleSerializer
-
 
     @action(detail=False, methods=['get'])
     def active(self, request):
@@ -143,14 +188,219 @@ class TimetableScheduleViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(schedule)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['get'])
+    def assignments(self, request, pk=None):
+        """
+        Retorna a matriz de aulas resolvida para uma grade específica (Tarefa L3).
+        Endpoint: GET /api/schedules/<id>/assignments/ ou /api/timetables/<id>/assignments/
+        Suporta <id> numérico ou 'active'.
+        Filtros aceitos via query params:
+          - school_class_id (ou class_id / school_class): ID da turma
+          - teacher_id (ou teacher): ID do professor
+          - day_of_week (ou day): Dia da semana (0 a 4)
+        """
+        if pk == 'active' or str(pk).lower() == 'active':
+            schedule = TimetableSchedule.objects.filter(is_active=True).first()
+            if not schedule:
+                return Response(
+                    {'error': 'Nenhuma grade horária ativa encontrada.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        else:
+            schedule = self.get_object()
+
+        qs = schedule.assignments.select_related(
+            'timetable_schedule', 'school_class', 'subject', 'teacher', 'time_slot'
+        ).order_by('day_of_week', 'time_slot__order')
+
+        school_class_id = (
+            request.query_params.get('school_class_id')
+            or request.query_params.get('class_id')
+            or request.query_params.get('school_class')
+        )
+        if school_class_id:
+            qs = qs.filter(school_class_id=school_class_id)
+
+        teacher_id = (
+            request.query_params.get('teacher_id')
+            or request.query_params.get('teacher')
+        )
+        if teacher_id:
+            qs = qs.filter(teacher_id=teacher_id)
+
+        day_of_week = request.query_params.get('day_of_week') or request.query_params.get('day')
+        if day_of_week is not None and day_of_week != '':
+            qs = qs.filter(day_of_week=day_of_week)
+
+        serializer = TimetableSlotAssignmentSerializer(qs, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def get_timetable(request):
+    """
+    Retorna a matriz de aulas resolvida da grade ativa (ou por schedule_id) (Tarefa L3).
+    Endpoint: GET /api/timetable/
+    Query params:
+      - schedule_id (opcional, padrão: active)
+      - school_class_id (ou class_id): filtrar por turma
+      - teacher_id (ou teacher): filtrar por docente
+      - day_of_week (ou day): filtrar por dia
+    """
+    schedule_id = (
+        request.query_params.get('schedule_id')
+        or request.query_params.get('schedule')
+        or request.query_params.get('timetable_id')
+    )
+    if schedule_id and schedule_id != 'active':
+        schedule = TimetableSchedule.objects.filter(id=schedule_id).first()
+    else:
+        schedule = TimetableSchedule.objects.filter(is_active=True).first()
+
+    if not schedule:
+        return Response(
+            {'error': 'Nenhuma grade horária ativa encontrada.'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    qs = schedule.assignments.select_related(
+        'timetable_schedule', 'school_class', 'subject', 'teacher', 'time_slot'
+    ).order_by('day_of_week', 'time_slot__order')
+
+    school_class_id = (
+        request.query_params.get('school_class_id')
+        or request.query_params.get('class_id')
+        or request.query_params.get('school_class')
+    )
+    if school_class_id:
+        qs = qs.filter(school_class_id=school_class_id)
+
+    teacher_id = (
+        request.query_params.get('teacher_id')
+        or request.query_params.get('teacher')
+    )
+    if teacher_id:
+        qs = qs.filter(teacher_id=teacher_id)
+
+    day_of_week = request.query_params.get('day_of_week') or request.query_params.get('day')
+    if day_of_week is not None and day_of_week != '':
+        qs = qs.filter(day_of_week=day_of_week)
+
+    serializer = TimetableSlotAssignmentSerializer(qs, many=True)
+    return Response({
+        'schedule_id': schedule.id,
+        'schedule_name': schedule.name,
+        'semester': schedule.semester,
+        'viability_score': schedule.viability_score,
+        'hard_violations_count': schedule.hard_violations_count,
+        'total_assignments': qs.count(),
+        'assignments': serializer.data
+    }, status=status.HTTP_200_OK)
+
 
 @api_view(['POST'])
 def run_solver(request):
-    schedule_name = request.data.get('name', 'Grade Oficial 2026.1 (IA Timetabling)')
-    semester = request.data.get('semester', '1º Semestre 2026')
-    solver = TimetablingSolver(schedule_name=schedule_name, semester=semester)
-    result = solver.solve()
-    return Response(result, status=status.HTTP_200_OK)
+    """
+    Executa o algoritmo de otimização de grade horária (Timetabling Solver).
+    Recebe os parâmetros:
+      - schedule_name (str, opcional): Nome descritivo da grade a ser gerada.
+      - semester (str, opcional): Semestre letivo de referência.
+    Retorna o JSON estruturado e padronizado com as métricas de viabilidade,
+    tempo de execução e identificador da grade persistida.
+    """
+    data = request.data or {}
+    schedule_name = data.get('schedule_name') or data.get('name') or 'Grade Oficial 2026.1 (IA Timetabling)'
+    if isinstance(schedule_name, str):
+        schedule_name = schedule_name.strip() or 'Grade Oficial 2026.1 (IA Timetabling)'
+
+    semester = data.get('semester') or '1º Semestre 2026'
+    if isinstance(semester, str):
+        semester = semester.strip() or '1º Semestre 2026'
+
+    # Validação inicial de viabilidade (Tarefa L4)
+    if not SchoolClass.objects.exists():
+        return Response({
+            'status': 'INFEASIBLE',
+            'message': 'Não foi possível iniciar o solver: nenhuma turma cadastrada no sistema.',
+            'error': 'Nenhuma turma cadastrada no sistema.',
+            'schedule_id': None,
+            'viability_score': 0.0,
+            'hard_violations': 0,
+            'total_assignments': 0,
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    if not CurriculumRequirement.objects.exists():
+        return Response({
+            'status': 'INFEASIBLE',
+            'message': 'Não foi possível iniciar o solver: nenhuma demanda curricular cadastrada para as turmas.',
+            'error': 'Nenhuma demanda curricular cadastrada.',
+            'schedule_id': None,
+            'viability_score': 0.0,
+            'hard_violations': 0,
+            'total_assignments': 0,
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    if not TimeSlot.objects.filter(is_break=False).exists():
+        return Response({
+            'status': 'INFEASIBLE',
+            'message': 'Não foi possível iniciar o solver: nenhum horário de aula configurado no sistema.',
+            'error': 'Nenhum slot de aula configurado.',
+            'schedule_id': None,
+            'viability_score': 0.0,
+            'hard_violations': 0,
+            'total_assignments': 0,
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        with transaction.atomic():  # type: ignore
+            solver = TimetablingSolver(schedule_name=schedule_name, semester=semester)
+            raw_result = solver.solve()
+    except Exception as exc:
+        return Response({
+            'status': 'ERROR',
+            'message': f'Erro durante a execução do algoritmo do solver: {str(exc)}',
+            'error': str(exc),
+            'schedule_id': None,
+            'viability_score': 0.0,
+            'hard_violations': 0,
+            'total_assignments': 0,
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    hard_violations = raw_result.get('hard_violations', 0)
+    viability_score = raw_result.get('viability_score', 0.0)
+    exec_time = raw_result.get('execution_time', 0.0)
+    exec_time_ms = raw_result.get('execution_time_ms', int(round(exec_time * 1000)))
+
+    # Determina o status padronizado: SUCCESS ou INFEASIBLE
+    computed_status = 'SUCCESS' if hard_violations == 0 and viability_score > 0 else 'INFEASIBLE'
+    status_str = raw_result.get('status') or computed_status
+
+    response_payload = {
+        'status': status_str,
+        'schedule_id': raw_result.get('schedule_id'),
+        'schedule_name': raw_result.get('schedule_name', schedule_name),
+        'semester': semester,
+        'viability_score': viability_score,
+        'hard_violations': hard_violations,
+        'soft_penalties': raw_result.get('soft_penalties', 0.0),
+        'execution_time': exec_time,
+        'execution_time_ms': exec_time_ms,
+        'total_assignments': raw_result.get('total_assignments', 0),
+        'hard_details': raw_result.get('hard_details', []),
+        'soft_details': raw_result.get('soft_details', []),
+        'message': (
+            'Grade horária gerada e otimizada com sucesso!'
+            if status_str == 'SUCCESS'
+            else 'Grade horária gerada com restrições ou conflitos identificados.'
+        ),
+    }
+
+    # Preserva chaves adicionais retornadas pelo solver se existirem
+    for key, value in raw_result.items():
+        if key not in response_payload:
+            response_payload[key] = value
+
+    return Response(response_payload, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
