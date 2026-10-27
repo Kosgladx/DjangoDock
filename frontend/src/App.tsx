@@ -3,6 +3,8 @@ import { Navbar } from './components/Navbar';
 import { TimetablePage } from './pages/TimetablePage';
 import { TeachersPage } from './pages/TeachersPage';
 import { TimeSlotsPage } from './pages/TimeSlotsPage';
+import { TeacherPortalPage } from './pages/TeacherPortalPage';
+import { AdminPanelPage } from './pages/AdminPanelPage';
 import { LoginPage, type UserSession } from './pages/LoginPage';
 import { api } from './services/api';
 import type {
@@ -20,7 +22,11 @@ export function App() {
     }
   });
 
-  const [activeTab, setActiveTab] = useState<'grid' | 'teachers' | 'slots'>('grid');
+  const [activeTab, setActiveTab] = useState<'grid' | 'teachers' | 'slots' | 'teacher-portal' | 'admin-panel'>(() => {
+    if (currentUser?.role === 'teacher') return 'teacher-portal';
+    if (currentUser?.role === 'admin') return 'admin-panel';
+    return 'grid';
+  });
   const [loading, setLoading] = useState(true);
   const [isSolving, setIsSolving] = useState(false);
 
@@ -65,6 +71,11 @@ export function App() {
 
   useEffect(() => {
     if (currentUser) {
+      if (currentUser.role === 'teacher') {
+        setActiveTab('teacher-portal');
+      } else if (currentUser.role === 'admin') {
+        setActiveTab('admin-panel');
+      }
       loadAllData();
     } else {
       setLoading(false);
@@ -144,6 +155,25 @@ export function App() {
             shifts={shifts}
             slots={slots}
             onRefresh={loadAllData}
+          />
+        )}
+
+        {activeTab === 'teacher-portal' && (
+          <TeacherPortalPage
+            currentUser={currentUser}
+            teachers={teachers}
+            slots={slots}
+            classes={classes}
+            rooms={rooms}
+            schedule={schedule}
+            onRefresh={loadAllData}
+          />
+        )}
+
+        {activeTab === 'admin-panel' && (
+          <AdminPanelPage
+            currentUser={currentUser}
+            onRefreshGlobal={loadAllData}
           />
         )}
       </main>

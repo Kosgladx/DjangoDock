@@ -121,3 +121,43 @@ export interface TimetableSchedule {
   assignments: TimetableSlotAssignment[];
   total_assignments_count: number;
 }
+
+export interface SystemUserAccount {
+  id: number;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  role: 'admin' | 'coordinator' | 'teacher';
+  role_label: string;
+  avatar_initials: string;
+  department: string;
+  is_active: boolean;
+  is_staff: boolean;
+  is_superuser: boolean;
+  date_joined: string;
+  last_login?: string | null;
+}
+
+export interface InstitutionSettingsData {
+  id?: number;
+  institution_name: string;
+  active_school_year: string;
+  academic_term: string;
+  term_start_date?: string | null;
+  term_end_date?: string | null;
+  solver_status: 'ACTIVE' | 'STANDBY' | 'MAINTENANCE';
+  solver_algorithm: string;
+  auto_balance_shifts: boolean;
+  contact_email: string;
+  updated_at?: string;
+  solver_diagnostics?: {
+    status: string;
+    engine_version: string;
+    latency_ms: number;
+    constraints_loaded: number;
+    active_schedules: number;
+    engine_type: string;
+  };
+}

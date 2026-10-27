@@ -34,6 +34,106 @@ const DEFAULT_SLOTS: TimeSlot[] = [
   { id: 7, shift: 1, order: 7, name: '6º Período', start_time: '11:45:00', end_time: '12:35:00', duration_minutes: 50, is_break: false, allow_double_lesson: true, requires_lab: false },
 ];
 
+interface SoftConstraintFeedback {
+  color: string;
+  badgeBg: string;
+  badgeText: string;
+  badgeBorder: string;
+  dotColor: string;
+}
+
+const getSoftConstraintColorInfo = (value: number): SoftConstraintFeedback => {
+  if (value <= 20) {
+    return {
+      color: '#ef4444',
+      badgeBg: 'bg-red-50',
+      badgeText: 'text-red-700',
+      badgeBorder: 'border-red-200',
+      dotColor: 'bg-red-500',
+    };
+  }
+  if (value <= 40) {
+    return {
+      color: '#f97316',
+      badgeBg: 'bg-orange-50',
+      badgeText: 'text-orange-700',
+      badgeBorder: 'border-orange-200',
+      dotColor: 'bg-orange-500',
+    };
+  }
+  if (value <= 60) {
+    return {
+      color: '#eab308',
+      badgeBg: 'bg-yellow-50',
+      badgeText: 'text-amber-800',
+      badgeBorder: 'border-yellow-200',
+      dotColor: 'bg-yellow-500',
+    };
+  }
+  if (value <= 80) {
+    return {
+      color: '#22c55e',
+      badgeBg: 'bg-green-50',
+      badgeText: 'text-green-700',
+      badgeBorder: 'border-green-200',
+      dotColor: 'bg-green-500',
+    };
+  }
+  return {
+    color: '#15803d',
+    badgeBg: 'bg-emerald-100',
+    badgeText: 'text-emerald-900',
+    badgeBorder: 'border-emerald-400',
+    dotColor: 'bg-emerald-700',
+  };
+};
+
+interface SoftConstraintSliderProps {
+  label: string;
+  description: string;
+  value: number;
+  onChange: (val: number) => void;
+}
+
+const SoftConstraintSlider: React.FC<SoftConstraintSliderProps> = ({
+  label,
+  description,
+  value,
+  onChange,
+}) => {
+  const feedback = getSoftConstraintColorInfo(value);
+
+  return (
+    <div>
+      <div className="flex justify-between items-center text-xs font-semibold mb-1">
+        <span className="text-slate-700">{label}</span>
+        <span
+          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition-colors ${feedback.badgeBg} ${feedback.badgeText} ${feedback.badgeBorder}`}
+        >
+          <span
+            className="w-2 h-2 rounded-full inline-block shrink-0 shadow-xs"
+            style={{ backgroundColor: feedback.color }}
+          />
+          <span>Peso: {value}</span>
+        </span>
+      </div>
+      <input
+        type="range"
+        min="0"
+        max="100"
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        style={{
+          accentColor: feedback.color,
+          background: `linear-gradient(to right, ${feedback.color} 0%, ${feedback.color} ${value}%, #e2e8f0 ${value}%, #e2e8f0 100%)`,
+        }}
+        className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer transition-all"
+      />
+      <p className="text-[10px] text-slate-500 mt-0.5">{description}</p>
+    </div>
+  );
+};
+
 export const TimetablePage: React.FC<TimetablePageProps> = ({
   schedule,
   classes,
@@ -548,69 +648,33 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({
           </div>
 
           <div className="space-y-3.5 pt-2">
-            <div>
-              <div className="flex justify-between text-xs font-semibold mb-1">
-                <span>Minimizar janelas vagas para professores</span>
-                <span className="text-indigo-600 font-bold">Peso: {gapWeight}</span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={gapWeight}
-                onChange={(e) => setGapWeight(Number(e.target.value))}
-                className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-              />
-              <p className="text-[10px] text-slate-500 mt-0.5">Penaliza horários ociosos entre a primeira e a última aula do docente.</p>
-            </div>
+            <SoftConstraintSlider
+              label="Minimizar janelas vagas para professores"
+              description="Penaliza horários ociosos entre a primeira e a última aula do docente."
+              value={gapWeight}
+              onChange={setGapWeight}
+            />
 
-            <div>
-              <div className="flex justify-between text-xs font-semibold mb-1">
-                <span>Agrupamento de aulas geminadas (aulas duplas)</span>
-                <span className="text-indigo-600 font-bold">Peso: {doubleWeight}</span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={doubleWeight}
-                onChange={(e) => setDoubleWeight(Number(e.target.value))}
-                className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-              />
-              <p className="text-[10px] text-slate-500 mt-0.5">Favorece blocos contínuos de 2 períodos para disciplinas práticas.</p>
-            </div>
+            <SoftConstraintSlider
+              label="Agrupamento de aulas geminadas (aulas duplas)"
+              description="Favorece blocos contínuos de 2 períodos para disciplinas práticas."
+              value={doubleWeight}
+              onChange={setDoubleWeight}
+            />
 
-            <div>
-              <div className="flex justify-between text-xs font-semibold mb-1">
-                <span>Distribuição equilibrada das matérias na semana</span>
-                <span className="text-indigo-600 font-bold">Peso: {balanceWeight}</span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={balanceWeight}
-                onChange={(e) => setBalanceWeight(Number(e.target.value))}
-                className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-              />
-              <p className="text-[10px] text-slate-500 mt-0.5">Evita concentração de aulas pesadas no mesmo dia.</p>
-            </div>
+            <SoftConstraintSlider
+              label="Distribuição equilibrada das matérias na semana"
+              description="Evita concentração de aulas pesadas no mesmo dia."
+              value={balanceWeight}
+              onChange={setBalanceWeight}
+            />
 
-            <div>
-              <div className="flex justify-between text-xs font-semibold mb-1">
-                <span>Concentração de dias de trabalho por professor</span>
-                <span className="text-indigo-600 font-bold">Peso: {concentrationWeight}</span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={concentrationWeight}
-                onChange={(e) => setConcentrationWeight(Number(e.target.value))}
-                className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-              />
-              <p className="text-[10px] text-slate-500 mt-0.5">Reduz o número total de deslocamentos semanais do docente.</p>
-            </div>
+            <SoftConstraintSlider
+              label="Concentração de dias de trabalho por professor"
+              description="Reduz o número total de deslocamentos semanais do docente."
+              value={concentrationWeight}
+              onChange={setConcentrationWeight}
+            />
           </div>
         </div>
       </section>

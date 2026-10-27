@@ -1,9 +1,10 @@
 import type {
-  Teacher, Shift, TimeSlot, Subject, ClassRoom, SchoolClass,
-  ConstraintConfig, TimetableSchedule, TimetableSlotAssignment
+  Teacher, Shift, TimeSlot, Subject, SchoolClass,
+  ConstraintConfig, TimetableSchedule, TimetableSlotAssignment,
+  SystemUserAccount, InstitutionSettingsData
 } from '../types';
 
-export const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+const API_BASE = 'http://127.0.0.1:8000/api';
 
 export async function getTeachers(): Promise<Teacher[]> {
   const res = await fetch(`${API_BASE}/teachers/`);
@@ -14,13 +15,13 @@ export async function getTeachers(): Promise<Teacher[]> {
 export async function updateTeacherAvailability(
   teacherId: number,
   availabilities: Array<{ day_of_week: number; time_slot_id: number; status: string; notes?: string }>
-) {
+): Promise<any> {
   const res = await fetch(`${API_BASE}/teachers/${teacherId}/set_availability/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ availabilities })
   });
-  if (!res.ok) throw new Error('Falha ao atualizar disponibilidade');
+  if (!res.ok) throw new Error('Falha ao salvar disponibilidades');
   return res.json();
 }
 
@@ -47,6 +48,47 @@ export async function createTeacher(teacher: Partial<Teacher> | FormData): Promi
     throw new Error(errorMsg);
   }
   return res.json();
+}
+
+export async function updateTeacher(id: number, teacher: Partial<Teacher> | FormData): Promise<Teacher> {
+  const isFormData = teacher instanceof FormData;
+  const res = await fetch(`${API_BASE}/teachers/${id}/`, {
+    method: 'PATCH',
+    headers: isFormData ? undefined : { 'Content-Type': 'application/json' },
+    body: isFormData ? teacher : JSON.stringify(teacher)
+  });
+  if (!res.ok) {
+    let errorMsg = 'Falha ao atualizar dados do professor';
+    try {
+      const data = await res.json();
+      if (typeof data === 'object' && data !== null) {
+        const fieldErrors = Object.entries(data)
+          .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+          .join(' | ');
+        if (fieldErrors) errorMsg = fieldErrors;
+      }
+    } catch {
+      // fallback
+    }
+    throw new Error(errorMsg);
+  }
+  return res.json();
+}
+
+export async function deleteTeacher(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/teachers/${id}/`, {
+    method: 'DELETE',
+  });
+  if (!res.ok && res.status !== 204) {
+    let errorMsg = 'Falha ao excluir professor';
+    try {
+      const data = await res.json();
+      if (data?.detail) errorMsg = data.detail;
+    } catch {
+      // fallback
+    }
+    throw new Error(errorMsg);
+  }
 }
 
 export async function batchCreateTeachers(
@@ -122,12 +164,6 @@ export async function getSubjects(): Promise<Subject[]> {
   return res.json();
 }
 
-export async function getRooms(): Promise<ClassRoom[]> {
-  const res = await fetch(`${API_BASE}/rooms/`);
-  if (!res.ok) throw new Error('Falha ao carregar salas');
-  return res.json();
-}
-
 export async function getConstraints(): Promise<ConstraintConfig[]> {
   const res = await fetch(`${API_BASE}/constraints/`);
   if (!res.ok) throw new Error('Falha ao carregar restrições');
@@ -144,48 +180,26 @@ export async function updateConstraint(id: number, data: Partial<ConstraintConfi
   return res.json();
 }
 
-export async function getActiveTimetable(): Promise<TimetableSchedule> {
+export async function getActiveTimetable(): Promise<TimetableSchedule | null> {
   const res = await fetch(`${API_BASE}/timetables/active/`);
-  if (!res.ok) throw new Error('Nenhuma grade ativa');
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error('Falha ao carregar grade horária ativa');
   return res.json();
 }
 
-export async function getScheduleAssignments(
-  scheduleId?: number,
-  schoolClassId?: number,
-  teacherId?: number
-): Promise<TimetableSlotAssignment[]> {
-  const params = new URLSearchParams();
-  if (scheduleId) params.append('timetable_schedule', String(scheduleId));
-  if (schoolClassId) params.append('school_class', String(schoolClassId));
-  if (teacherId) params.append('teacher', String(teacherId));
-  const queryString = params.toString() ? `?${params.toString()}` : '';
-
-  const res = await fetch(`${API_BASE}/assignments/${queryString}`);
+export async function getScheduleAssignments(scheduleId: number): Promise<TimetableSlotAssignment[]> {
+  const res = await fetch(`${API_BASE}/assignments/?timetable_schedule=${scheduleId}`);
   if (!res.ok) throw new Error('Falha ao carregar alocações da grade');
-  const data: TimetableSlotAssignment[] = await res.json();
-  return data.filter(a => {
-    if (scheduleId && a.timetable_schedule && (a as any).timetable_schedule !== scheduleId) return false;
-    if (schoolClassId && a.school_class !== schoolClassId) return false;
-    if (teacherId && a.teacher !== teacherId) return false;
-    return true;
-  });
+  return res.json();
 }
 
-export async function createOrUpdateAssignment(assignment: {
-  timetable_schedule?: number;
-  school_class: number;
-  day_of_week: number;
-  time_slot: number;
-  subject: number;
-  teacher: number;
-  room?: number;
-  is_manual_override?: boolean;
-}) {
+export async function createOrUpdateAssignment(
+  data: Partial<TimetableSlotAssignment>
+): Promise<TimetableSlotAssignment> {
   const res = await fetch(`${API_BASE}/assignments/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...assignment, is_manual_override: true })
+    body: JSON.stringify(data)
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -216,10 +230,113 @@ export async function seedData() {
   return res.json();
 }
 
+export async function getUsers(): Promise<SystemUserAccount[]> {
+  const res = await fetch(`${API_BASE}/users/`);
+  if (!res.ok) throw new Error('Falha ao carregar lista de usuários');
+  return res.json();
+}
+
+export async function createUser(user: { name: string; email: string; role: string; password?: string; department?: string }): Promise<SystemUserAccount> {
+  const res = await fetch(`${API_BASE}/users/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(user)
+  });
+  if (!res.ok) {
+    let errorMsg = 'Falha ao cadastrar usuário';
+    try {
+      const data = await res.json();
+      if (data?.error) errorMsg = data.error;
+      else if (typeof data === 'object') {
+        errorMsg = Object.entries(data).map(([k, v]) => `${k}: ${v}`).join(' | ');
+      }
+    } catch {
+      // fallback
+    }
+    throw new Error(errorMsg);
+  }
+  return res.json();
+}
+
+export async function updateUser(userId: number, user: { name?: string; email?: string; role?: string; department?: string; is_active?: boolean; password?: string }): Promise<SystemUserAccount> {
+  const res = await fetch(`${API_BASE}/users/${userId}/`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(user)
+  });
+  if (!res.ok) {
+    let errorMsg = 'Falha ao atualizar usuário';
+    try {
+      const data = await res.json();
+      if (data?.error) errorMsg = data.error;
+      else if (typeof data === 'object') {
+        errorMsg = Object.entries(data).map(([k, v]) => `${k}: ${v}`).join(' | ');
+      }
+    } catch {
+      // fallback
+    }
+    throw new Error(errorMsg);
+  }
+  return res.json();
+}
+
+export async function toggleUserStatus(userId: number): Promise<{ status: string; is_active: boolean; message: string }> {
+  const res = await fetch(`${API_BASE}/users/${userId}/toggle_status/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  if (!res.ok) throw new Error('Falha ao alterar status da conta');
+  return res.json();
+}
+
+export async function resetUserPassword(userId: number, password?: string): Promise<{ status: string; new_password?: string; message: string }> {
+  const res = await fetch(`${API_BASE}/users/${userId}/reset_password/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password })
+  });
+  if (!res.ok) throw new Error('Falha ao resetar senha do usuário');
+  return res.json();
+}
+
+export async function deleteUser(userId: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/users/${userId}/`, {
+    method: 'DELETE'
+  });
+  if (!res.ok && res.status !== 204) {
+    let errorMsg = 'Falha ao remover usuário';
+    try {
+      const data = await res.json();
+      if (data?.error) errorMsg = data.error;
+    } catch {
+      // fallback
+    }
+    throw new Error(errorMsg);
+  }
+}
+
+export async function getInstitutionSettings(): Promise<InstitutionSettingsData> {
+  const res = await fetch(`${API_BASE}/institution-settings/`);
+  if (!res.ok) throw new Error('Falha ao carregar configurações da instituição');
+  return res.json();
+}
+
+export async function updateInstitutionSettings(settings: Partial<InstitutionSettingsData>): Promise<InstitutionSettingsData> {
+  const res = await fetch(`${API_BASE}/institution-settings/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(settings)
+  });
+  if (!res.ok) throw new Error('Falha ao atualizar parâmetros globais');
+  return res.json();
+}
+
 export const api = {
   getTeachers,
   updateTeacherAvailability,
   createTeacher,
+  updateTeacher,
+  deleteTeacher,
   batchCreateTeachers,
   getShifts,
   createShift,
@@ -229,7 +346,6 @@ export const api = {
   deleteSlot,
   getClasses,
   getSubjects,
-  getRooms,
   getConstraints,
   updateConstraint,
   getActiveTimetable,
@@ -237,7 +353,15 @@ export const api = {
   createOrUpdateAssignment,
   deleteAssignment,
   runSolver,
-  seedData
+  seedData,
+  getUsers,
+  createUser,
+  updateUser,
+  toggleUserStatus,
+  resetUserPassword,
+  deleteUser,
+  getInstitutionSettings,
+  updateInstitutionSettings
 };
 
 export default api;

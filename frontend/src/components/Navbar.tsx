@@ -1,10 +1,13 @@
 import React from 'react';
-import { Calendar, Zap, AlertTriangle, Layers, Users, Clock, RefreshCw, LogOut } from 'lucide-react';
+import {
+  Calendar, Zap, AlertTriangle, Layers, Users, Clock,
+  RefreshCw, LogOut, GraduationCap, Shield
+} from 'lucide-react';
 import type { UserSession } from '../pages/LoginPage';
 
 interface NavbarProps {
-  activeTab: 'grid' | 'teachers' | 'slots';
-  setActiveTab: (tab: 'grid' | 'teachers' | 'slots') => void;
+  activeTab: 'grid' | 'teachers' | 'slots' | 'teacher-portal' | 'admin-panel';
+  setActiveTab: (tab: 'grid' | 'teachers' | 'slots' | 'teacher-portal' | 'admin-panel') => void;
   onRunSolver: () => void;
   isSolving: boolean;
   viabilityScore?: number;
@@ -42,38 +45,62 @@ export const Navbar: React.FC<NavbarProps> = ({
       <nav className="hidden md:flex items-center space-x-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
         <button
           onClick={() => setActiveTab('grid')}
-          className={`flex items-center space-x-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+          className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
             activeTab === 'grid'
               ? 'bg-white text-indigo-600 shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
           <Layers className="w-3.5 h-3.5" />
-          <span>Matriz de Horários (Page 1)</span>
+          <span>Matriz de Horários</span>
         </button>
 
         <button
           onClick={() => setActiveTab('teachers')}
-          className={`flex items-center space-x-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+          className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
             activeTab === 'teachers'
               ? 'bg-white text-indigo-600 shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
           <Users className="w-3.5 h-3.5" />
-          <span>Professores & Disponibilidade (Page 2)</span>
+          <span>Professores (Admin)</span>
         </button>
 
         <button
           onClick={() => setActiveTab('slots')}
-          className={`flex items-center space-x-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+          className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
             activeTab === 'slots'
               ? 'bg-white text-indigo-600 shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
           <Clock className="w-3.5 h-3.5" />
-          <span>Slots & Grade Horária (Page 3)</span>
+          <span>Slots & Grade</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('teacher-portal')}
+          className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer border ${
+            activeTab === 'teacher-portal'
+              ? 'bg-indigo-600 text-white border-indigo-700 shadow-xs'
+              : 'bg-indigo-50/80 text-indigo-700 border-indigo-200/80 hover:bg-indigo-100'
+          }`}
+        >
+          <GraduationCap className="w-4 h-4" />
+          <span>Área do Professor</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('admin-panel')}
+          className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer border ${
+            activeTab === 'admin-panel'
+              ? 'bg-purple-600 text-white border-purple-700 shadow-xs'
+              : 'bg-purple-50/80 text-purple-700 border-purple-200/80 hover:bg-purple-100'
+          }`}
+        >
+          <Shield className="w-4 h-4" />
+          <span>Administração</span>
         </button>
       </nav>
 

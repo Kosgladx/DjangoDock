@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import type { Teacher, TimeSlot } from '../types';
 import { api } from '../services/api';
-import { Search, Plus, Save, CheckCircle2, Download, Users } from 'lucide-react';
+import {
+  Search, Plus, Save, CheckCircle2, Download, Users,
+  Pencil, Trash2, AlertTriangle, Loader2
+} from 'lucide-react';
 import { NewTeacherModal } from '../components/NewTeacherModal';
 import { ImportTeachersCSVModal } from '../components/ImportTeachersCSVModal';
 
@@ -37,10 +40,37 @@ export const TeachersPage: React.FC<TeachersPageProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCSVModalOpen, setIsCSVModalOpen] = useState(false);
+  const [teacherToEdit, setTeacherToEdit] = useState<Teacher | null>(null);
+  const [teacherToDelete, setTeacherToDelete] = useState<Teacher | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleTeacherCreated = (newTeacher: Teacher) => {
-    setSelectedTeacherId(newTeacher.id);
+  const handleOpenNewModal = () => {
+    setTeacherToEdit(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (teacher: Teacher) => {
+    setTeacherToEdit(teacher);
+    setIsModalOpen(true);
+  };
+
+  const handleTeacherSaved = (savedTeacher: Teacher) => {
+    setSelectedTeacherId(savedTeacher.id);
     onRefresh();
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!teacherToDelete) return;
+    setIsDeleting(true);
+    try {
+      await api.deleteTeacher(teacherToDelete.id);
+      setTeacherToDelete(null);
+      onRefresh();
+    } catch (err: any) {
+      alert('Erro ao excluir professor: ' + (err.message || err));
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const selectedTeacher = teachers.find(t => t.id === selectedTeacherId) || teachers[0];
@@ -237,7 +267,7 @@ export const TeachersPage: React.FC<TeachersPageProps> = ({
           </button>
 
           <button 
-            onClick={() => setIsModalOpen(true)}
+            onClick={handleOpenNewModal}
             className="flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
           >
             <Plus className="w-4 h-4" />
@@ -265,7 +295,7 @@ export const TeachersPage: React.FC<TeachersPageProps> = ({
                 </div>
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(true)}
+                  onClick={handleOpenNewModal}
                   className="inline-flex items-center space-x-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -315,10 +345,36 @@ export const TeachersPage: React.FC<TeachersPageProps> = ({
                     </div>
                   </div>
 
-                  <div>
+                  <div className="flex items-center space-x-2">
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all ${statusInfo.badgeClass}`}>
                       {statusInfo.label}
                     </span>
+
+                    {/* Action buttons on teacher row */}
+                    <div className="flex items-center space-x-1 shrink-0 ml-1">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenEditModal(t);
+                        }}
+                        className="p-1 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
+                        title="Editar este professor"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTeacherToDelete(t);
+                        }}
+                        className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                        title="Excluir este professor"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -330,26 +386,50 @@ export const TeachersPage: React.FC<TeachersPageProps> = ({
         {selectedTeacher && (
           <div className="lg:col-span-5 bg-white rounded-xl border border-slate-200 shadow-xs p-5 space-y-5">
             {/* Teacher Quick Card */}
-            <div className="bg-indigo-50/70 border border-indigo-100 rounded-xl p-4 flex items-center space-x-3.5">
-              {selectedTeacher.photo ? (
-                <img
-                  src={selectedTeacher.photo}
-                  alt={selectedTeacher.name}
-                  className="w-12 h-12 rounded-full object-cover shadow-xs border-2 border-indigo-200 shrink-0"
-                />
-              ) : (
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-base shadow-xs shrink-0"
-                  style={{ backgroundColor: `${selectedTeacher.color}25`, color: selectedTeacher.color }}
-                >
-                  {selectedTeacher.avatar_initials}
+            <div className="bg-indigo-50/70 border border-indigo-100 rounded-xl p-4 flex items-center justify-between gap-3">
+              <div className="flex items-center space-x-3.5 min-w-0">
+                {selectedTeacher.photo ? (
+                  <img
+                    src={selectedTeacher.photo}
+                    alt={selectedTeacher.name}
+                    className="w-12 h-12 rounded-full object-cover shadow-xs border-2 border-indigo-200 shrink-0"
+                  />
+                ) : (
+                  <div
+                    className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-base shadow-xs shrink-0"
+                    style={{ backgroundColor: `${selectedTeacher.color}25`, color: selectedTeacher.color }}
+                  >
+                    {selectedTeacher.avatar_initials}
+                  </div>
+                )}
+                <div className="truncate">
+                  <h4 className="text-sm font-bold text-indigo-950 truncate">{selectedTeacher.name}</h4>
+                  <p className="text-xs text-indigo-700 truncate">
+                    Carga: {selectedTeacher.max_weekly_hours} tempos/semana • Turno: {shiftLabels[selectedTeacher.shift_preference] || selectedTeacher.shift_preference || 'Qualquer'}
+                  </p>
                 </div>
-              )}
-              <div>
-                <h4 className="text-sm font-bold text-indigo-950">{selectedTeacher.name}</h4>
-                <p className="text-xs text-indigo-700">
-                  Carga: {selectedTeacher.max_weekly_hours} tempos/semana • Turno: {shiftLabels[selectedTeacher.shift_preference] || selectedTeacher.shift_preference || 'Qualquer'}
-                </p>
+              </div>
+
+              {/* Action buttons on quick card */}
+              <div className="flex items-center space-x-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleOpenEditModal(selectedTeacher)}
+                  className="flex items-center space-x-1 px-2.5 py-1.5 bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
+                  title="Editar dados deste professor"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Editar</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTeacherToDelete(selectedTeacher)}
+                  className="flex items-center space-x-1 px-2.5 py-1.5 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
+                  title="Excluir este professor"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Excluir</span>
+                </button>
               </div>
             </div>
 
@@ -451,11 +531,16 @@ export const TeachersPage: React.FC<TeachersPageProps> = ({
         )}
       </section>
 
-      {/* New Teacher Modal */}
+      {/* New / Edit Teacher Modal */}
       <NewTeacherModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onTeacherCreated={handleTeacherCreated}
+        onClose={() => {
+          setIsModalOpen(false);
+          setTeacherToEdit(null);
+        }}
+        teacherToEdit={teacherToEdit}
+        onTeacherCreated={handleTeacherSaved}
+        onTeacherUpdated={handleTeacherSaved}
       />
 
       {/* Import Teachers CSV Modal */}
@@ -464,6 +549,78 @@ export const TeachersPage: React.FC<TeachersPageProps> = ({
         onClose={() => setIsCSVModalOpen(false)}
         onImportSuccess={() => onRefresh()}
       />
+
+      {/* Delete Confirmation Modal */}
+      {teacherToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
+            <div className="p-6 space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+
+              <div className="text-center space-y-1">
+                <h3 className="text-base font-bold text-slate-900">Excluir Professor?</h3>
+                <p className="text-xs text-slate-500">
+                  Esta ação é irreversível. O docente, suas disponibilidades declaradas e eventuais alocações na grade serão removidos.
+                </p>
+              </div>
+
+              {/* Teacher Summary Box */}
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center space-x-3">
+                {teacherToDelete.photo ? (
+                  <img
+                    src={teacherToDelete.photo}
+                    alt={teacherToDelete.name}
+                    className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0"
+                  />
+                ) : (
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shrink-0"
+                    style={{ backgroundColor: `${teacherToDelete.color}20`, color: teacherToDelete.color }}
+                  >
+                    {teacherToDelete.avatar_initials}
+                  </div>
+                )}
+                <div className="truncate text-left">
+                  <p className="text-xs font-bold text-slate-900 truncate">{teacherToDelete.name}</p>
+                  <p className="text-[11px] text-slate-500 truncate">{teacherToDelete.email}</p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setTeacherToDelete(null)}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  disabled={isDeleting}
+                  className="flex-1 flex items-center justify-center space-x-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Excluindo...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      <span>Sim, Excluir</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
