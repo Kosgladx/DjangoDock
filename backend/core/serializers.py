@@ -54,7 +54,7 @@ class CurriculumRequirementSerializer(serializers.ModelSerializer):
     subject_code = serializers.ReadOnlyField(source='subject.code')
     subject_color = serializers.ReadOnlyField(source='subject.color')
     teacher_name = serializers.ReadOnlyField(source='teacher.name')
-
+    class_name = serializers.ReadOnlyField(source='school_class.name')
 
     class Meta:
         model = CurriculumRequirement
@@ -63,6 +63,7 @@ class CurriculumRequirementSerializer(serializers.ModelSerializer):
 
 class SchoolClassSerializer(serializers.ModelSerializer):
     curriculum = CurriculumRequirementSerializer(many=True, read_only=True)
+    shift_name = serializers.ReadOnlyField(source='shift.name')
     total_weekly_lessons = serializers.SerializerMethodField()
 
     class Meta:

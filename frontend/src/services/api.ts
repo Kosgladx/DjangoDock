@@ -1,5 +1,5 @@
 import type {
-  Teacher, Shift, TimeSlot, Subject, SchoolClass,
+  Teacher, Shift, TimeSlot, Subject, SchoolClass, CurriculumRequirement,
   ConstraintConfig, TimetableSchedule, TimetableSlotAssignment,
   SystemUserAccount, InstitutionSettingsData
 } from '../types';
@@ -158,10 +158,125 @@ export async function getClasses(): Promise<SchoolClass[]> {
   return res.json();
 }
 
+export async function createClass(data: Partial<SchoolClass>): Promise<SchoolClass> {
+  const res = await fetch(`${API_BASE}/classes/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const msg = Object.values(err).flat().join(', ') || 'Falha ao cadastrar turma';
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+export async function updateClass(id: number, data: Partial<SchoolClass>): Promise<SchoolClass> {
+  const res = await fetch(`${API_BASE}/classes/${id}/`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const msg = Object.values(err).flat().join(', ') || 'Falha ao atualizar turma';
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+export async function deleteClass(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/classes/${id}/`, { method: 'DELETE' });
+  if (!res.ok && res.status !== 204) throw new Error('Falha ao excluir turma');
+}
+
 export async function getSubjects(): Promise<Subject[]> {
   const res = await fetch(`${API_BASE}/subjects/`);
   if (!res.ok) throw new Error('Falha ao carregar disciplinas');
   return res.json();
+}
+
+export async function createSubject(data: Partial<Subject>): Promise<Subject> {
+  const res = await fetch(`${API_BASE}/subjects/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const msg = Object.values(err).flat().join(', ') || 'Falha ao cadastrar disciplina';
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+export async function updateSubject(id: number, data: Partial<Subject>): Promise<Subject> {
+  const res = await fetch(`${API_BASE}/subjects/${id}/`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const msg = Object.values(err).flat().join(', ') || 'Falha ao atualizar disciplina';
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+export async function deleteSubject(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/subjects/${id}/`, { method: 'DELETE' });
+  if (!res.ok && res.status !== 204) throw new Error('Falha ao excluir disciplina');
+}
+
+export async function getCurriculum(classId?: number): Promise<CurriculumRequirement[]> {
+  const url = classId ? `${API_BASE}/curriculum/?school_class=${classId}` : `${API_BASE}/curriculum/`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Falha ao carregar matriz curricular');
+  return res.json();
+}
+
+export async function createCurriculumRequirement(data: {
+  school_class: number;
+  subject: number;
+  teacher: number;
+  weekly_lessons: number;
+  double_lessons_allowed?: boolean;
+}): Promise<CurriculumRequirement> {
+  const res = await fetch(`${API_BASE}/curriculum/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const msg = Object.values(err).flat().join(', ') || 'Falha ao vincular matéria na matriz curricular';
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+export async function updateCurriculumRequirement(
+  id: number,
+  data: Partial<CurriculumRequirement>
+): Promise<CurriculumRequirement> {
+  const res = await fetch(`${API_BASE}/curriculum/${id}/`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const msg = Object.values(err).flat().join(', ') || 'Falha ao atualizar requisito curricular';
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+export async function deleteCurriculumRequirement(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/curriculum/${id}/`, { method: 'DELETE' });
+  if (!res.ok && res.status !== 204) throw new Error('Falha ao remover item da matriz curricular');
 }
 
 export async function getConstraints(): Promise<ConstraintConfig[]> {
@@ -345,7 +460,17 @@ export const api = {
   createSlot,
   deleteSlot,
   getClasses,
+  createClass,
+  updateClass,
+  deleteClass,
   getSubjects,
+  createSubject,
+  updateSubject,
+  deleteSubject,
+  getCurriculum,
+  createCurriculumRequirement,
+  updateCurriculumRequirement,
+  deleteCurriculumRequirement,
   getConstraints,
   updateConstraint,
   getActiveTimetable,

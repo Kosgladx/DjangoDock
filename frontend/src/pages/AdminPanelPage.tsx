@@ -1,16 +1,23 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import type { SystemUserAccount, InstitutionSettingsData } from '../types';
+import type {
+  SystemUserAccount, InstitutionSettingsData, SchoolClass, Subject,
+  CurriculumRequirement, Shift, Teacher
+} from '../types';
 import type { UserSession } from './LoginPage';
 import { api } from '../services/api';
 import {
   Shield, Users, Settings, UserPlus, KeyRound, Power,
   CheckCircle2, RefreshCw, Search,
   Building2, Cpu, Check, ShieldAlert,
-  Loader2, Trash2, Pencil, Calendar
+  Loader2, Trash2, Pencil,
+  GraduationCap, BookOpen, Layers, Plus
 } from 'lucide-react';
 import { NewUserModal } from '../components/NewUserModal';
 import { ResetPasswordModal } from '../components/ResetPasswordModal';
 import { EditUserModal } from '../components/EditUserModal';
+import { NewClassModal } from '../components/NewClassModal';
+import { NewSubjectModal } from '../components/NewSubjectModal';
+import { NewCurriculumModal } from '../components/NewCurriculumModal';
 
 interface AdminPanelPageProps {
   currentUser: UserSession | null;
@@ -21,14 +28,13 @@ export const AdminPanelPage: React.FC<AdminPanelPageProps> = ({
   currentUser,
   onRefreshGlobal,
 }) => {
-  const [activeSection, setActiveSection] = useState<'users' | 'settings' | 'roles'>('users');
-  const [users, setUsers] = useState<SystemUserAccount[]>([]);
-  const [settings, setSettings] = useState<InstitutionSettingsData | null>(null);
+  const [activeSection, setActiveSection] = useState<'users' | 'classes-subjects' | 'curriculum' | 'settings' | 'roles'>('users');
   const [loading, setLoading] = useState(true);
+
+  // Users state
+  const [users, setUsers] = useState<SystemUserAccount[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'coordinator' | 'teacher'>('all');
-
-  // Modals state
   const [isNewUserModalOpen, setIsNewUserModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState<SystemUserAccount | null>(null);
   const [userToResetPassword, setUserToResetPassword] = useState<SystemUserAccount | null>(null);
@@ -37,7 +43,37 @@ export const AdminPanelPage: React.FC<AdminPanelPageProps> = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
 
+  // Classes & Subjects state
+  const [classes, setClasses] = useState<SchoolClass[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [classSubTab, setClassSubTab] = useState<'classes' | 'subjects'>('classes');
+  const [classSearch, setClassSearch] = useState('');
+  const [subjectSearch, setSubjectSearch] = useState('');
+
+  // Class Modals
+  const [isNewClassModalOpen, setIsNewClassModalOpen] = useState(false);
+  const [classToEdit, setClassToEdit] = useState<SchoolClass | null>(null);
+  const [classToDelete, setClassToDelete] = useState<SchoolClass | null>(null);
+  const [isDeletingClass, setIsDeletingClass] = useState(false);
+
+  // Subject Modals
+  const [isNewSubjectModalOpen, setIsNewSubjectModalOpen] = useState(false);
+  const [subjectToEdit, setSubjectToEdit] = useState<Subject | null>(null);
+  const [subjectToDelete, setSubjectToDelete] = useState<Subject | null>(null);
+  const [isDeletingSubject, setIsDeletingSubject] = useState(false);
+
+  // Curriculum State & Modals
+  const [curriculum, setCurriculum] = useState<CurriculumRequirement[]>([]);
+  const [selectedCurriculumClassId, setSelectedCurriculumClassId] = useState<number>(1);
+  const [isNewCurriculumModalOpen, setIsNewCurriculumModalOpen] = useState(false);
+  const [curriculumToEdit, setCurriculumToEdit] = useState<CurriculumRequirement | null>(null);
+  const [curriculumToDelete, setCurriculumToDelete] = useState<CurriculumRequirement | null>(null);
+  const [isDeletingCurriculum, setIsDeletingCurriculum] = useState(false);
+
   // Settings form state
+  const [, setSettings] = useState<InstitutionSettingsData | null>(null);
   const [institutionName, setInstitutionName] = useState('');
   const [schoolYear, setSchoolYear] = useState('2026.1');
   const [academicTerm, setAcademicTerm] = useState('1º Semestre Letivo');
@@ -50,14 +86,20 @@ export const AdminPanelPage: React.FC<AdminPanelPageProps> = ({
   const [testingSolver, setTestingSolver] = useState(false);
   const [solverTestResult, setSolverTestResult] = useState<string | null>(null);
 
-  // Load users and settings
+  // Load all admin data
   const loadAdminData = async () => {
     try {
       setLoading(true);
-      const [usersData, settingsData] = await Promise.all([
+      const [usersData, settingsData, classesData, subjectsData, shiftsData, teachersData, curriculumData] = await Promise.all([
         api.getUsers(),
         api.getInstitutionSettings(),
+        api.getClasses(),
+        api.getSubjects(),
+        api.getShifts(),
+        api.getTeachers(),
+        api.getCurriculum(),
       ]);
+
       setUsers(usersData);
       setSettings(settingsData);
       setInstitutionName(settingsData.institution_name);
@@ -67,8 +109,18 @@ export const AdminPanelPage: React.FC<AdminPanelPageProps> = ({
       setTermEndDate(settingsData.term_end_date || '2026-07-03');
       setContactEmail(settingsData.contact_email);
       setAutoBalance(settingsData.auto_balance_shifts ?? true);
+
+      setClasses(classesData);
+      setSubjects(subjectsData);
+      setShifts(shiftsData);
+      setTeachers(teachersData);
+      setCurriculum(curriculumData);
+
+      if (classesData.length > 0 && !selectedCurriculumClassId) {
+        setSelectedCurriculumClassId(classesData[0].id);
+      }
     } catch (err) {
-      console.error('Failed to load admin data:', err);
+      console.error('Falha ao carregar dados administrativos:', err);
     } finally {
       setLoading(false);
     }
@@ -78,226 +130,352 @@ export const AdminPanelPage: React.FC<AdminPanelPageProps> = ({
     loadAdminData();
   }, []);
 
-  // Filtered users
+  // Filtered users list
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
-      const matchSearch =
-        u.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        u.username.toLowerCase().includes(searchTerm.toLowerCase());
-      if (!matchSearch) return false;
-      if (roleFilter !== 'all' && u.role !== roleFilter) return false;
-      return true;
+      const matchesSearch =
+        u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        u.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        u.department?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesRole = roleFilter === 'all' || u.role === roleFilter;
+
+      return matchesSearch && matchesRole;
     });
   }, [users, searchTerm, roleFilter]);
 
-  // Update user in local state
-  const handleUserUpdated = (updatedUser: SystemUserAccount) => {
-    setUsers((prev) => prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
-  };
+  // Filtered classes and subjects
+  const filteredClasses = useMemo(() => {
+    return classes.filter(
+      (c) =>
+        c.name.toLowerCase().includes(classSearch.toLowerCase()) ||
+        c.grade_level?.toLowerCase().includes(classSearch.toLowerCase())
+    );
+  }, [classes, classSearch]);
 
-  // Toggle user active status
+  const filteredSubjects = useMemo(() => {
+    return subjects.filter(
+      (s) =>
+        s.name.toLowerCase().includes(subjectSearch.toLowerCase()) ||
+        s.code.toLowerCase().includes(subjectSearch.toLowerCase())
+    );
+  }, [subjects, subjectSearch]);
+
+  // Curriculum for selected class
+  const classCurriculum = useMemo(() => {
+    return curriculum.filter((c) => c.school_class === selectedCurriculumClassId);
+  }, [curriculum, selectedCurriculumClassId]);
+
+  const totalLessonsInSelectedClass = useMemo(() => {
+    return classCurriculum.reduce((acc, curr) => acc + (curr.weekly_lessons || 0), 0);
+  }, [classCurriculum]);
+
+  const selectedClassObj = useMemo(() => {
+    return classes.find((c) => c.id === selectedCurriculumClassId);
+  }, [classes, selectedCurriculumClassId]);
+
+  // User Actions
   const handleToggleStatus = async (user: SystemUserAccount) => {
-    if (currentUser && (user.email === currentUser.email || user.username === currentUser.email)) {
-      alert('Por segurança, você não pode desativar sua própria conta de administrador em uso.');
+    if (user.email === currentUser?.email) {
+      alert('Você não pode desativar sua própria conta ativa.');
       return;
     }
-    setActionLoadingId(user.id);
     try {
+      setActionLoadingId(user.id);
       const res = await api.toggleUserStatus(user.id);
       setUsers((prev) =>
         prev.map((u) => (u.id === user.id ? { ...u, is_active: res.is_active } : u))
       );
     } catch (err: any) {
-      alert('Erro ao alterar status: ' + (err.message || err));
+      alert('Erro ao alterar status: ' + err.message);
     } finally {
       setActionLoadingId(null);
     }
   };
 
-  // Delete user
   const handleConfirmDelete = async () => {
     if (!userToDelete) return;
-    if (currentUser && (userToDelete.email === currentUser.email || userToDelete.username === currentUser.email)) {
-      setDeleteErrorMessage('Não é permitido excluir sua própria conta em uso.');
-      return;
-    }
-    setIsDeleting(true);
-    setDeleteErrorMessage(null);
     try {
+      setIsDeleting(true);
+      setDeleteErrorMessage(null);
       await api.deleteUser(userToDelete.id);
       setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
       setUserToDelete(null);
     } catch (err: any) {
-      setDeleteErrorMessage(err.message || 'Erro ao excluir usuário');
+      setDeleteErrorMessage(err.message || 'Falha ao remover usuário.');
     } finally {
       setIsDeleting(false);
     }
   };
 
-  // Save institution settings
+  // Class Delete Action
+  const handleConfirmDeleteClass = async () => {
+    if (!classToDelete) return;
+    try {
+      setIsDeletingClass(true);
+      await api.deleteClass(classToDelete.id);
+      setClasses((prev) => prev.filter((c) => c.id !== classToDelete.id));
+      setClassToDelete(null);
+      if (selectedCurriculumClassId === classToDelete.id) {
+        setSelectedCurriculumClassId(classes.find((c) => c.id !== classToDelete.id)?.id || 1);
+      }
+      if (onRefreshGlobal) onRefreshGlobal();
+    } catch (err: any) {
+      alert('Erro ao excluir turma: ' + err.message);
+    } finally {
+      setIsDeletingClass(false);
+    }
+  };
+
+  // Subject Delete Action
+  const handleConfirmDeleteSubject = async () => {
+    if (!subjectToDelete) return;
+    try {
+      setIsDeletingSubject(true);
+      await api.deleteSubject(subjectToDelete.id);
+      setSubjects((prev) => prev.filter((s) => s.id !== subjectToDelete.id));
+      setSubjectToDelete(null);
+      if (onRefreshGlobal) onRefreshGlobal();
+    } catch (err: any) {
+      alert('Erro ao excluir disciplina: ' + err.message);
+    } finally {
+      setIsDeletingSubject(false);
+    }
+  };
+
+  // Curriculum Delete Action
+  const handleConfirmDeleteCurriculum = async () => {
+    if (!curriculumToDelete) return;
+    try {
+      setIsDeletingCurriculum(true);
+      await api.deleteCurriculumRequirement(curriculumToDelete.id);
+      setCurriculum((prev) => prev.filter((c) => c.id !== curriculumToDelete.id));
+      setCurriculumToDelete(null);
+      if (onRefreshGlobal) onRefreshGlobal();
+    } catch (err: any) {
+      alert('Erro ao remover item da matriz: ' + err.message);
+    } finally {
+      setIsDeletingCurriculum(false);
+    }
+  };
+
+  const handleUserCreated = (newUser: SystemUserAccount) => {
+    setUsers((prev) => [newUser, ...prev]);
+  };
+
+  const handleUserUpdated = (updatedUser: SystemUserAccount) => {
+    setUsers((prev) => prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
+  };
+
+  // Save Settings
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (termStartDate && termEndDate && termStartDate > termEndDate) {
-      alert('Atenção: A data de início do período letivo não pode ser posterior à data de término.');
-      return;
-    }
-    setSavingSettings(true);
-    setSettingsSuccessMsg(null);
     try {
+      setSavingSettings(true);
+      setSettingsSuccessMsg(null);
       const updated = await api.updateInstitutionSettings({
         institution_name: institutionName,
         active_school_year: schoolYear,
         academic_term: academicTerm,
-        term_start_date: termStartDate || null,
-        term_end_date: termEndDate || null,
+        term_start_date: termStartDate,
+        term_end_date: termEndDate,
         contact_email: contactEmail,
         auto_balance_shifts: autoBalance,
       });
       setSettings(updated);
-      setSettingsSuccessMsg('Configurações institucionais e calendário letivo salvos com sucesso!');
+      setSettingsSuccessMsg('Configurações institucionais e diretrizes salvas com sucesso!');
+      setTimeout(() => setSettingsSuccessMsg(null), 5000);
       if (onRefreshGlobal) onRefreshGlobal();
-      setTimeout(() => setSettingsSuccessMsg(null), 3500);
     } catch (err: any) {
-      alert('Erro ao salvar configurações: ' + (err.message || err));
+      alert('Erro ao atualizar configurações: ' + err.message);
     } finally {
       setSavingSettings(false);
     }
   };
 
-  // Test solver connection
   const handleTestSolver = async () => {
-    setTestingSolver(true);
-    setSolverTestResult(null);
     try {
-      const t0 = performance.now();
-      await api.getInstitutionSettings();
-      const t1 = performance.now();
-      const latency = Math.round(t1 - t0);
-      setSolverTestResult(`✅ Motor de Otimização Operante (Ping: ${latency}ms) — Conexão validada com sucesso!`);
+      setTestingSolver(true);
+      setSolverTestResult(null);
+      const res = await api.runSolver('Teste de Calibração IA (Admin)', schoolYear);
+      setSolverTestResult(
+        `Diagnóstico Concluído com Sucesso! Viabilidade: ${res.viability_score}% | Violações Rígidas: ${res.hard_violations} | Tempo: ${res.execution_time}s`
+      );
     } catch (err: any) {
-      setSolverTestResult(`❌ Erro de conexão com o Solver: ${err.message}`);
+      setSolverTestResult('Falha no teste do motor: ' + err.message);
     } finally {
       setTestingSolver(false);
     }
   };
 
-  if (loading && !settings) {
+  if (loading) {
     return (
-      <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center space-y-3">
-        <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mx-auto" />
-        <p className="text-xs font-bold text-slate-600">Carregando Módulo de Administração Geral...</p>
+      <div className="min-h-[400px] flex flex-col items-center justify-center space-y-3">
+        <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+        <p className="text-xs font-bold text-slate-500">Carregando painel de administração...</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* 1. Admin Hero Banner */}
-      <section className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-6 shadow-md relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center space-x-4">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-600/90 border border-indigo-400/30 flex items-center justify-center text-white shadow-lg shrink-0">
-              <Shield className="w-7 h-7" />
-            </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 border border-indigo-400/30">
-                  Controle Central
-                </span>
-                <span className="text-xs text-indigo-300">Acesso Restrito</span>
-              </div>
-              <h1 className="text-xl font-bold tracking-tight text-white mt-1">
-                Painel do Administrador Geral
-              </h1>
-              <p className="text-xs text-indigo-200/80">
-                Gestão unificada de contas, perfis de acesso, políticas de credenciais e parâmetros globais do motor de horários.
-              </p>
-            </div>
+      {/* 1. Admin Header Banner */}
+      <section className="bg-gradient-to-r from-purple-900 via-indigo-950 to-slate-900 text-white p-6 rounded-2xl shadow-lg border border-purple-800/40 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center space-x-2 text-purple-300 text-xs font-semibold uppercase tracking-wider mb-1">
+            <Shield className="w-4 h-4 text-purple-400" />
+            <span>EduSchedule • Centro de Governança & Parâmetros</span>
           </div>
+          <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+            Painel de Administração
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-200 border border-purple-500/30">
+              {currentUser?.role === 'admin' ? 'Acesso Total (Superusuário)' : 'Coordenação Pedagógica'}
+            </span>
+          </h1>
+          <p className="text-xs text-slate-300 mt-1 max-w-2xl">
+            Gestão unificada do ecossistema: contas de usuários, turmas, disciplinas, matrizes curriculares e parâmetros do motor IA.
+          </p>
+        </div>
 
-          {/* Quick Metrics Badges */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            <div className="bg-white/10 backdrop-blur-md px-3.5 py-2 rounded-xl border border-white/10 text-left">
-              <p className="text-[10px] text-indigo-200 uppercase font-semibold">Usuários Cadastrados</p>
-              <p className="text-sm font-bold text-white">{users.length} Contas Ativas</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-md px-3.5 py-2 rounded-xl border border-white/10 text-left">
-              <p className="text-[10px] text-indigo-200 uppercase font-semibold">Ano Letivo Vigente</p>
-              <div className="flex items-center space-x-2">
-                <p className="text-sm font-bold text-white">{settings?.active_school_year || '2026.1'}</p>
-                {settings?.term_start_date && settings?.term_end_date && (
-                  <span className="text-[10px] text-indigo-300 font-medium border-l border-white/20 pl-2">
-                    {new Date(settings.term_start_date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} a {new Date(settings.term_end_date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="bg-emerald-500/20 backdrop-blur-md px-3.5 py-2 rounded-xl border border-emerald-400/30 text-left flex items-center space-x-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <div>
-                <p className="text-[10px] text-emerald-200 uppercase font-semibold">Solver IA</p>
-                <p className="text-xs font-bold text-emerald-100">Online & Operante</p>
-              </div>
-            </div>
+        <div className="flex items-center space-x-3 shrink-0">
+          <button
+            onClick={loadAdminData}
+            className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/10 transition cursor-pointer"
+            title="Atualizar dados"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+          <div className="flex items-center space-x-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3.5 py-2 rounded-xl text-xs font-semibold">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            <span>Solver IA Operante</span>
           </div>
         </div>
       </section>
 
       {/* 2. Sub-navigation tabs */}
       <section className="bg-white p-2 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center space-x-1.5 text-xs font-semibold">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
           <button
             onClick={() => setActiveSection('users')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition cursor-pointer ${
+            className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg transition cursor-pointer ${
               activeSection === 'users'
                 ? 'bg-indigo-600 text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             <Users className="w-4 h-4" />
-            <span>Gestão de Usuários & Acessos</span>
+            <span>Usuários & Acessos</span>
             <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${activeSection === 'users' ? 'bg-indigo-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
               {users.length}
             </span>
           </button>
 
           <button
+            onClick={() => setActiveSection('classes-subjects')}
+            className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg transition cursor-pointer ${
+              activeSection === 'classes-subjects'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <GraduationCap className="w-4 h-4" />
+            <span>Turmas & Disciplinas</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${activeSection === 'classes-subjects' ? 'bg-indigo-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
+              {classes.length + subjects.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveSection('curriculum')}
+            className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg transition cursor-pointer ${
+              activeSection === 'curriculum'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            <span>Matriz Curricular</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${activeSection === 'curriculum' ? 'bg-indigo-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
+              {curriculum.length}
+            </span>
+          </button>
+
+          <button
             onClick={() => setActiveSection('settings')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition cursor-pointer ${
+            className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg transition cursor-pointer ${
               activeSection === 'settings'
                 ? 'bg-indigo-600 text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             <Settings className="w-4 h-4" />
-            <span>Configurações da Instituição & Solver</span>
+            <span>Parâmetros & Solver</span>
           </button>
 
           <button
             onClick={() => setActiveSection('roles')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition cursor-pointer ${
+            className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg transition cursor-pointer ${
               activeSection === 'roles'
                 ? 'bg-indigo-600 text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             <ShieldAlert className="w-4 h-4" />
-            <span>Matriz de Papéis & Permissões</span>
+            <span>Matriz RBAC</span>
           </button>
         </div>
 
-        {activeSection === 'users' && (
-          <button
-            onClick={() => setIsNewUserModalOpen(true)}
-            className="flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
-          >
-            <UserPlus className="w-3.5 h-3.5" />
-            <span>Novo Usuário</span>
-          </button>
-        )}
+        {/* Action button corresponding to active section */}
+        <div>
+          {activeSection === 'users' && (
+            <button
+              onClick={() => setIsNewUserModalOpen(true)}
+              className="flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>Novo Usuário</span>
+            </button>
+          )}
+
+          {activeSection === 'classes-subjects' && (
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => {
+                  setClassToEdit(null);
+                  setIsNewClassModalOpen(true);
+                }}
+                className="flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Nova Turma</span>
+              </button>
+              <button
+                onClick={() => {
+                  setSubjectToEdit(null);
+                  setIsNewSubjectModalOpen(true);
+                }}
+                className="flex items-center space-x-1.5 bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Nova Disciplina</span>
+              </button>
+            </div>
+          )}
+
+          {activeSection === 'curriculum' && (
+            <button
+              onClick={() => {
+                setCurriculumToEdit(null);
+                setIsNewCurriculumModalOpen(true);
+              }}
+              className="flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Vincular Disciplina</span>
+            </button>
+          )}
+        </div>
       </section>
 
       {/* 3. SECTION 1: USERS & ACCESS MANAGEMENT */}
@@ -318,184 +496,152 @@ export const AdminPanelPage: React.FC<AdminPanelPageProps> = ({
               </div>
 
               <div className="flex items-center space-x-1 text-xs">
-                <button
-                  onClick={() => setRoleFilter('all')}
-                  className={`px-3 py-1.5 rounded-md font-semibold transition cursor-pointer ${
-                    roleFilter === 'all'
-                      ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  Todos ({users.length})
-                </button>
-                <button
-                  onClick={() => setRoleFilter('admin')}
-                  className={`px-3 py-1.5 rounded-md font-semibold transition cursor-pointer ${
-                    roleFilter === 'admin'
-                      ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  Administradores
-                </button>
-                <button
-                  onClick={() => setRoleFilter('coordinator')}
-                  className={`px-3 py-1.5 rounded-md font-semibold transition cursor-pointer ${
-                    roleFilter === 'coordinator'
-                      ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  Coordenadores
-                </button>
-                <button
-                  onClick={() => setRoleFilter('teacher')}
-                  className={`px-3 py-1.5 rounded-md font-semibold transition cursor-pointer ${
-                    roleFilter === 'teacher'
-                      ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  Professores
-                </button>
+                {(['all', 'admin', 'coordinator', 'teacher'] as const).map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setRoleFilter(r)}
+                    className={`px-2.5 py-1 rounded-md font-semibold transition cursor-pointer ${
+                      roleFilter === r
+                        ? 'bg-indigo-100 text-indigo-700 font-bold'
+                        : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+                    }`}
+                  >
+                    {r === 'all' && 'Todos'}
+                    {r === 'admin' && 'Administradores'}
+                    {r === 'coordinator' && 'Coordenação'}
+                    {r === 'teacher' && 'Professores'}
+                  </button>
+                ))}
               </div>
             </div>
 
-            <div className="text-xs text-slate-500">
-              Mostrando <strong>{filteredUsers.length}</strong> de {users.length} usuários
+            <div className="text-xs text-slate-500 font-medium">
+              Exibindo <strong>{filteredUsers.length}</strong> de <strong>{users.length}</strong> contas
             </div>
           </div>
 
           {/* Users Table */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left text-xs">
+              <table className="w-full text-left border-collapse min-w-[750px]">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold">
-                    <th className="p-3.5 pl-4">Usuário / Identificação</th>
-                    <th className="p-3.5">Perfil de Acesso</th>
-                    <th className="p-3.5">Departamento / Lotação</th>
-                    <th className="p-3.5">Status da Conta</th>
-                    <th className="p-3.5">Data de Criação</th>
-                    <th className="p-3.5 pr-4 text-right">Ações de Gestão</th>
+                  <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wider font-semibold">
+                    <th className="p-3.5 pl-6">Usuário</th>
+                    <th className="p-3.5">Papel / Perfil</th>
+                    <th className="p-3.5">Departamento</th>
+                    <th className="p-3.5">Status</th>
+                    <th className="p-3.5">Último Acesso</th>
+                    <th className="p-3.5 pr-6 text-right">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-200 text-xs">
                   {filteredUsers.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="p-8 text-center text-slate-400">
-                        Nenhum usuário corresponde aos filtros aplicados.
+                        Nenhum usuário encontrado com os filtros selecionados.
                       </td>
                     </tr>
                   ) : (
                     filteredUsers.map((u) => {
-                      const isCurrent = Boolean(currentUser && (u.email === currentUser.email || u.username === currentUser.email));
-                      const isLoadingAction = actionLoadingId === u.id;
-
-                      let roleBadgeClass = 'bg-slate-100 text-slate-700 border-slate-200';
-                      if (u.role === 'admin') roleBadgeClass = 'bg-purple-50 text-purple-700 border-purple-200';
-                      else if (u.role === 'coordinator') roleBadgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
-                      else if (u.role === 'teacher') roleBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-
+                      const isSelf = u.email === currentUser?.email;
                       return (
                         <tr key={u.id} className="hover:bg-slate-50/60 transition">
-                          {/* User Name & Email */}
-                          <td className="p-3.5 pl-4">
+                          <td className="p-3.5 pl-6">
                             <div className="flex items-center space-x-3">
-                              <div className="relative">
-                                <div className="w-9 h-9 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-bold text-xs flex items-center justify-center">
-                                  {u.avatar_initials}
-                                </div>
-                                <span
-                                  className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${
-                                    u.is_active ? 'bg-emerald-500' : 'bg-rose-500'
-                                  }`}
-                                  title={u.is_active ? 'Conta Ativa' : 'Conta Inativa'}
-                                />
+                              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
+                                {u.avatar_initials || 'US'}
                               </div>
                               <div>
                                 <div className="font-bold text-slate-900 flex items-center space-x-1.5">
                                   <span>{u.full_name}</span>
-                                  {isCurrent && (
-                                    <span className="text-[9px] bg-slate-100 text-slate-500 px-1 py-0.2 rounded font-normal">
+                                  {isSelf && (
+                                    <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.2 rounded font-semibold">
                                       Você
                                     </span>
                                   )}
                                 </div>
-                                <div className="text-[11px] text-slate-400">{u.email || u.username}</div>
+                                <div className="text-[11px] text-slate-500">{u.email || u.username}</div>
                               </div>
                             </div>
                           </td>
 
-                          {/* Role */}
                           <td className="p-3.5">
-                            <span className={`inline-flex items-center space-x-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${roleBadgeClass}`}>
+                            <span
+                              className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
+                                u.role === 'admin'
+                                  ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                  : u.role === 'coordinator'
+                                  ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              }`}
+                            >
                               <Shield className="w-3 h-3" />
                               <span>{u.role_label}</span>
                             </span>
                           </td>
 
-                          {/* Department */}
                           <td className="p-3.5 text-slate-600 font-medium">
-                            {u.department || 'Coordenação Geral'}
+                            {u.department || 'Coordenação Pedagógica'}
                           </td>
 
-                          {/* Status Toggle */}
                           <td className="p-3.5">
-                            <button
-                              type="button"
-                              onClick={() => handleToggleStatus(u)}
-                              disabled={isLoadingAction}
-                              className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border transition cursor-pointer ${
+                            <span
+                              className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-md text-[11px] font-semibold ${
                                 u.is_active
-                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                                  : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                                  ? 'bg-emerald-50 text-emerald-700'
+                                  : 'bg-slate-100 text-slate-500'
                               }`}
-                              title="Clique para ativar/desativar conta"
                             >
-                              {isLoadingAction ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : u.is_active ? (
-                                <Check className="w-3 h-3" />
-                              ) : (
-                                <Power className="w-3 h-3" />
-                              )}
-                              <span>{u.is_active ? 'Conta Ativa' : 'Desativada'}</span>
-                            </button>
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  u.is_active ? 'bg-emerald-500' : 'bg-slate-400'
+                                }`}
+                              />
+                              <span>{u.is_active ? 'Ativo' : 'Inativo'}</span>
+                            </span>
                           </td>
 
-                          {/* Date Joined */}
-                          <td className="p-3.5 text-slate-400 text-[11px]">
-                            {new Date(u.date_joined).toLocaleDateString('pt-BR')}
+                          <td className="p-3.5 text-slate-500 text-[11px]">
+                            {u.last_login
+                              ? new Date(u.last_login).toLocaleDateString('pt-BR')
+                              : 'Nunca acessou'}
                           </td>
 
-                          {/* Action Buttons */}
-                          <td className="p-3.5 pr-4 text-right">
-                            <div className="flex items-center justify-end space-x-1.5">
-                              {/* Edit User Button */}
+                          <td className="p-3.5 pr-6 text-right">
+                            <div className="flex items-center justify-end space-x-1">
                               <button
                                 type="button"
-                                onClick={() => setUserToEdit(u)}
-                                className="flex items-center space-x-1 px-2.5 py-1 text-slate-700 hover:text-indigo-700 hover:bg-indigo-50 border border-slate-200 rounded-lg text-xs font-semibold transition cursor-pointer"
-                                title={`Editar dados de ${u.full_name} (${u.role_label})`}
+                                onClick={() => handleToggleStatus(u)}
+                                disabled={actionLoadingId === u.id || isSelf}
+                                className={`p-1.5 rounded-lg transition cursor-pointer border ${
+                                  u.is_active
+                                    ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50 border-transparent hover:border-amber-200'
+                                    : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border-transparent hover:border-emerald-200'
+                                } disabled:opacity-40`}
+                                title={u.is_active ? 'Desativar conta' : 'Ativar conta'}
                               >
-                                <Pencil className="w-3.5 h-3.5 text-indigo-600" />
-                                <span>Editar</span>
+                                <Power className="w-3.5 h-3.5" />
                               </button>
 
-                              {/* Reset Password */}
                               <button
                                 type="button"
                                 onClick={() => setUserToResetPassword(u)}
-                                className="flex items-center space-x-1 px-2.5 py-1 text-slate-600 hover:text-amber-700 hover:bg-amber-50 border border-slate-200 rounded-lg text-xs font-semibold transition cursor-pointer"
-                                title="Resetar senha provisória"
+                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer border border-transparent hover:border-indigo-200"
+                                title="Resetar senha"
                               >
-                                <KeyRound className="w-3.5 h-3.5 text-amber-600" />
-                                <span>Senha</span>
+                                <KeyRound className="w-3.5 h-3.5" />
                               </button>
 
-                              {/* Delete User */}
-                              {!isCurrent ? (
+                              <button
+                                type="button"
+                                onClick={() => setUserToEdit(u)}
+                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer border border-transparent hover:border-indigo-200"
+                                title="Editar dados"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+
+                              {!isSelf ? (
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -503,14 +649,12 @@ export const AdminPanelPage: React.FC<AdminPanelPageProps> = ({
                                     setUserToDelete(u);
                                   }}
                                   className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer border border-transparent hover:border-rose-200"
-                                  title={`Excluir conta de ${u.full_name} (${u.role_label})`}
+                                  title={`Excluir conta de ${u.full_name}`}
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>
                               ) : (
-                                <span className="text-[10px] text-slate-400 italic px-1">
-                                  Você
-                                </span>
+                                <span className="text-[10px] text-slate-400 italic px-1">Você</span>
                               )}
                             </div>
                           </td>
@@ -525,10 +669,384 @@ export const AdminPanelPage: React.FC<AdminPanelPageProps> = ({
         </div>
       )}
 
-      {/* 4. SECTION 2: INSTITUTION SETTINGS & SOLVER ENGINE */}
+      {/* 4. SECTION 2: CLASSES & SUBJECTS DUAL MANAGEMENT */}
+      {activeSection === 'classes-subjects' && (
+        <div className="space-y-6">
+          {/* Sub-tab Switcher */}
+          <div className="flex items-center space-x-2 border-b border-slate-200 pb-2">
+            <button
+              onClick={() => setClassSubTab('classes')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                classSubTab === 'classes'
+                  ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              <GraduationCap className="w-4 h-4" />
+              <span>Turmas Escolares ({classes.length})</span>
+            </button>
+            <button
+              onClick={() => setClassSubTab('subjects')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                classSubTab === 'subjects'
+                  ? 'bg-purple-50 text-purple-700 border border-purple-200 shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              <BookOpen className="w-4 h-4" />
+              <span>Disciplinas Curriculares ({subjects.length})</span>
+            </button>
+          </div>
+
+          {/* SUB-VIEW 1: CLASSES */}
+          {classSubTab === 'classes' && (
+            <div className="space-y-4">
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
+                <div className="relative">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    placeholder="Buscar turma por nome ou série..."
+                    value={classSearch}
+                    onChange={(e) => setClassSearch(e.target.value)}
+                    className="pl-9 pr-4 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs w-72 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    setClassToEdit(null);
+                    setIsNewClassModalOpen(true);
+                  }}
+                  className="flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Cadastrar Turma</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredClasses.length === 0 ? (
+                  <div className="col-span-full p-8 text-center text-slate-400 bg-white rounded-xl border border-slate-200">
+                    Nenhuma turma escolar cadastrada.
+                  </div>
+                ) : (
+                  filteredClasses.map((cls) => {
+                    const shiftObj = shifts.find((s) => s.id === cls.shift);
+                    return (
+                      <div
+                        key={cls.id}
+                        className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs hover:border-indigo-200 transition space-y-3"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-sm">
+                              📚
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-bold text-slate-900">{cls.name}</h4>
+                              <p className="text-xs text-slate-500">{cls.grade_level}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setClassToEdit(cls);
+                                setIsNewClassModalOpen(true);
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                              title="Editar turma"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setClassToDelete(cls)}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                              title="Excluir turma"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
+                          <div className="p-2 bg-slate-50 rounded-lg">
+                            <span className="text-[10px] text-slate-400 block font-semibold">Turno</span>
+                            <span className="font-bold text-slate-700">{cls.shift_name || shiftObj?.name || 'Matutino'}</span>
+                          </div>
+                          <div className="p-2 bg-slate-50 rounded-lg">
+                            <span className="text-[10px] text-slate-400 block font-semibold">Estudantes</span>
+                            <span className="font-bold text-slate-700">{cls.student_count} alunos</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs pt-1">
+                          <span className="text-slate-500 font-medium">Aulas na Matriz:</span>
+                          <span className="font-bold text-indigo-600">{cls.total_weekly_lessons || 25} tempos/sem</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* SUB-VIEW 2: SUBJECTS */}
+          {classSubTab === 'subjects' && (
+            <div className="space-y-4">
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
+                <div className="relative">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    placeholder="Buscar disciplina por nome ou código..."
+                    value={subjectSearch}
+                    onChange={(e) => setSubjectSearch(e.target.value)}
+                    className="pl-9 pr-4 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs w-72 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    setSubjectToEdit(null);
+                    setIsNewSubjectModalOpen(true);
+                  }}
+                  className="flex items-center space-x-1.5 bg-purple-600 hover:bg-purple-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Cadastrar Disciplina</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredSubjects.length === 0 ? (
+                  <div className="col-span-full p-8 text-center text-slate-400 bg-white rounded-xl border border-slate-200">
+                    Nenhuma disciplina cadastrada.
+                  </div>
+                ) : (
+                  filteredSubjects.map((sub) => (
+                    <div
+                      key={sub.id}
+                      className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs hover:border-purple-200 transition space-y-3"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div
+                            className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs text-white shadow-xs"
+                            style={{ backgroundColor: sub.color }}
+                          >
+                            {sub.code}
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-bold text-slate-900">{sub.name}</h4>
+                            <span className="text-[10px] font-mono font-bold text-slate-400">{sub.code}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSubjectToEdit(sub);
+                              setIsNewSubjectModalOpen(true);
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition"
+                            title="Editar disciplina"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSubjectToDelete(sub)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                            title="Excluir disciplina"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-100">
+                        <div className="flex items-center space-x-2">
+                          <span
+                            className="w-3 h-3 rounded-full border border-slate-200 inline-block"
+                            style={{ backgroundColor: sub.color }}
+                          />
+                          <span className="font-mono text-[11px] text-slate-500">{sub.color}</span>
+                        </div>
+                        {sub.requires_lab ? (
+                          <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 text-[10px] font-bold border border-amber-200">
+                            Requer Lab
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-400">Sala Comum</span>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 5. SECTION 3: CURRICULUM REQUIREMENTS MATRIX */}
+      {activeSection === 'curriculum' && (
+        <div className="space-y-5">
+          {/* Class Filter & Summary Banner */}
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-center space-x-3">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Turma Selecionada:
+              </label>
+              <select
+                value={selectedCurriculumClassId}
+                onChange={(e) => setSelectedCurriculumClassId(Number(e.target.value))}
+                className="bg-indigo-50/80 border border-indigo-200 text-indigo-950 font-bold rounded-xl px-4 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-2xs"
+              >
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    📚 {c.name} ({c.grade_level})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Allocation Meter */}
+            <div className="flex items-center space-x-4">
+              <div className="text-right">
+                <span className="text-[11px] text-slate-500 font-semibold block">Carga Horária Semanal:</span>
+                <span
+                  className={`text-sm font-extrabold ${
+                    totalLessonsInSelectedClass === 25
+                      ? 'text-emerald-600'
+                      : totalLessonsInSelectedClass > 25
+                      ? 'text-rose-600'
+                      : 'text-amber-600'
+                  }`}
+                >
+                  {totalLessonsInSelectedClass} / 25 Tempos
+                </span>
+              </div>
+              <div className="w-28 bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div
+                  className={`h-2.5 rounded-full transition-all duration-300 ${
+                    totalLessonsInSelectedClass === 25
+                      ? 'bg-emerald-500'
+                      : totalLessonsInSelectedClass > 25
+                      ? 'bg-rose-500'
+                      : 'bg-amber-500'
+                  }`}
+                  style={{ width: `${Math.min(100, (totalLessonsInSelectedClass / 25) * 100)}%` }}
+                />
+              </div>
+
+              <button
+                onClick={() => {
+                  setCurriculumToEdit(null);
+                  setIsNewCurriculumModalOpen(true);
+                }}
+                className="flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Adicionar Disciplina</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Curriculum Table */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[700px]">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wider font-semibold">
+                    <th className="p-3.5 pl-6">Disciplina</th>
+                    <th className="p-3.5">Professor Titular</th>
+                    <th className="p-3.5 text-center">Aulas Semanais</th>
+                    <th className="p-3.5 text-center">Geminadas?</th>
+                    <th className="p-3.5 pr-6 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 text-xs">
+                  {classCurriculum.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="p-8 text-center text-slate-400">
+                        Nenhuma disciplina vinculada à matriz da turma {selectedClassObj?.name || ''}. Clique em "Adicionar Disciplina" para iniciar.
+                      </td>
+                    </tr>
+                  ) : (
+                    classCurriculum.map((item) => (
+                      <tr key={item.id} className="hover:bg-slate-50/60 transition">
+                        <td className="p-3.5 pl-6">
+                          <div className="flex items-center space-x-3">
+                            <span
+                              className="w-7 h-7 rounded-lg text-white font-mono font-bold text-[10px] flex items-center justify-center shadow-2xs shrink-0"
+                              style={{ backgroundColor: item.subject_color || '#3B82F6' }}
+                            >
+                              {item.subject_code || 'MAT'}
+                            </span>
+                            <span className="font-bold text-slate-900">{item.subject_name}</span>
+                          </div>
+                        </td>
+
+                        <td className="p-3.5">
+                          <span className="font-medium text-slate-700">👨‍🏫 {item.teacher_name}</span>
+                        </td>
+
+                        <td className="p-3.5 text-center">
+                          <span className="px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700 font-extrabold text-xs">
+                            {item.weekly_lessons} aulas/sem
+                          </span>
+                        </td>
+
+                        <td className="p-3.5 text-center">
+                          {item.double_lessons_allowed ? (
+                            <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded text-[11px]">
+                              Sim
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 text-[11px]">Não</span>
+                          )}
+                        </td>
+
+                        <td className="p-3.5 pr-6 text-right">
+                          <div className="flex items-center justify-end space-x-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCurriculumToEdit(item);
+                                setIsNewCurriculumModalOpen(true);
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                              title="Editar vínculo"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setCurriculumToDelete(item)}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                              title="Remover da matriz"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 6. SECTION 4: INSTITUTION SETTINGS & SOLVER ENGINE */}
       {activeSection === 'settings' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Form: Institutional Parameters (7 cols) */}
+          {/* Left Form: Institutional Parameters */}
           <div className="lg:col-span-7 bg-white rounded-xl border border-slate-200 shadow-xs p-6 space-y-5">
             <div className="flex items-center space-x-3 pb-4 border-b border-slate-100">
               <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center">
@@ -569,111 +1087,83 @@ export const AdminPanelPage: React.FC<AdminPanelPageProps> = ({
                   <input
                     type="text"
                     required
+                    placeholder="2026.1"
                     value={schoolYear}
                     onChange={(e) => setSchoolYear(e.target.value)}
-                    placeholder="Ex: 2026.1"
                     className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-slate-800"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Semestre / Termo Letivo
+                    Período / Semestre
                   </label>
                   <input
                     type="text"
                     value={academicTerm}
                     onChange={(e) => setAcademicTerm(e.target.value)}
-                    placeholder="Ex: 1º Semestre Letivo"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-slate-800"
                   />
                 </div>
               </div>
 
-              {/* Seletor de Data: Início e Término do Período Letivo */}
-              <div className="p-4 bg-slate-50/90 rounded-xl border border-slate-200 space-y-3">
-                <div className="flex items-center space-x-2 text-slate-800 font-bold text-xs">
-                  <div className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
-                    <Calendar className="w-3.5 h-3.5" />
-                  </div>
-                  <span>Vigência do Período Letivo (Calendário Acadêmico)</span>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Início das Aulas
+                  </label>
+                  <input
+                    type="date"
+                    value={termStartDate}
+                    onChange={(e) => setTermStartDate(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
+                  />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Data de Início do Período Letivo *
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={termStartDate}
-                      onChange={(e) => setTermStartDate(e.target.value)}
-                      className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 shadow-2xs"
-                    />
-                    <p className="text-[10px] text-slate-400 mt-0.5">Primeiro dia oficial de aulas</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Data de Término do Período Letivo *
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={termEndDate}
-                      onChange={(e) => setTermEndDate(e.target.value)}
-                      className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 shadow-2xs"
-                    />
-                    <p className="text-[10px] text-slate-400 mt-0.5">Encerramento das atividades letivas</p>
-                  </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Término do Período
+                  </label>
+                  <input
+                    type="date"
+                    value={termEndDate}
+                    onChange={(e) => setTermEndDate(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
+                  />
                 </div>
-
-                {/* Duration summary indicator */}
-                {termStartDate && termEndDate && (
-                  <div className="pt-2 border-t border-slate-200/60 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600">
-                    <span className="flex items-center space-x-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                      <span>
-                        Vigência: <strong>{new Date(termStartDate + 'T00:00:00').toLocaleDateString('pt-BR')}</strong> até <strong>{new Date(termEndDate + 'T00:00:00').toLocaleDateString('pt-BR')}</strong>
-                      </span>
-                    </span>
-                    <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-bold text-[10px] border border-indigo-200">
-                      {Math.max(0, Math.round((new Date(termEndDate).getTime() - new Date(termStartDate).getTime()) / (1000 * 60 * 60 * 24 * 7)))} semanas letivas
-                    </span>
-                  </div>
-                )}
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  E-mail Oficial de Notificações da Coordenação
+                  E-mail de Notificações da Coordenação
                 </label>
                 <input
                   type="email"
                   value={contactEmail}
                   onChange={(e) => setContactEmail(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
                 />
               </div>
 
-              <div className="pt-2">
-                <label className="flex items-center space-x-2.5 text-xs font-medium text-slate-700 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={autoBalance}
-                    onChange={(e) => setAutoBalance(e.target.checked)}
-                    className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
-                  />
-                  <span>Habilitar balanceamento automático de cargas e turnos para novas grades</span>
+              <div className="flex items-center space-x-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                <input
+                  type="checkbox"
+                  id="chk-auto-balance"
+                  checked={autoBalance}
+                  onChange={(e) => setAutoBalance(e.target.checked)}
+                  className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                />
+                <label htmlFor="chk-auto-balance" className="text-xs font-medium text-slate-700 cursor-pointer">
+                  <span className="font-bold text-slate-900 block">Equilíbrio Automático de Turnos</span>
+                  <span className="text-slate-500 text-[11px]">Distribuir docentes proporcionalmente para mitigar janelas ociosas.</span>
                 </label>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex justify-end">
+              <div className="pt-2">
                 <button
                   type="submit"
                   disabled={savingSettings}
-                  className="flex items-center space-x-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
+                  className="w-full flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs shadow-xs transition cursor-pointer disabled:opacity-50"
                 >
                   {savingSettings ? (
                     <>
@@ -683,7 +1173,7 @@ export const AdminPanelPage: React.FC<AdminPanelPageProps> = ({
                   ) : (
                     <>
                       <Check className="w-4 h-4" />
-                      <span>Salvar Configurações Globais</span>
+                      <span>Salvar Parâmetros Globais</span>
                     </>
                   )}
                 </button>
@@ -691,158 +1181,128 @@ export const AdminPanelPage: React.FC<AdminPanelPageProps> = ({
             </form>
           </div>
 
-          {/* Right Panel: Optimization Engine Diagnostics (5 cols) */}
-          <div className="lg:col-span-5 bg-white rounded-xl border border-slate-200 shadow-xs p-6 space-y-5 flex flex-col justify-between">
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3 pb-4 border-b border-slate-100">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center">
+          {/* Right Column: Solver Engine Health Diagnostics */}
+          <div className="lg:col-span-5 space-y-4">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6 space-y-4">
+              <div className="flex items-center space-x-3 pb-3 border-b border-slate-100">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-100 text-purple-600 flex items-center justify-center">
                   <Cpu className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">Motor de Otimização (Solver IA)</h3>
-                  <p className="text-xs text-slate-500">Status em tempo real do pipeline heurístico de resolução.</p>
+                  <h3 className="text-sm font-bold text-slate-900">Motor de Otimização Heurística</h3>
+                  <p className="text-[11px] text-slate-500">Telemetria operacional do Solver</p>
                 </div>
               </div>
 
-              {/* Status Indicator Card */}
-              <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-50 to-slate-50 border border-emerald-200 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700">Estado da Conexão</span>
-                  <span className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                    <span>ONLINE & PRONTO</span>
+              <div className="space-y-2.5 text-xs">
+                <div className="flex justify-between p-2.5 bg-slate-50 rounded-lg">
+                  <span className="text-slate-500">Arquitetura de Resolução:</span>
+                  <span className="font-bold text-slate-800">Construtivo Guloso + Local Search</span>
+                </div>
+                <div className="flex justify-between p-2.5 bg-slate-50 rounded-lg">
+                  <span className="text-slate-500">Status Operacional:</span>
+                  <span className="font-bold text-emerald-600 flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    ONLINE
                   </span>
                 </div>
-
-                <div className="grid grid-cols-2 gap-3 pt-1 text-xs">
-                  <div className="bg-white p-2.5 rounded-lg border border-slate-200">
-                    <p className="text-[10px] text-slate-400 uppercase font-semibold">Latência da API</p>
-                    <p className="text-xs font-bold text-slate-800">~12 ms</p>
-                  </div>
-                  <div className="bg-white p-2.5 rounded-lg border border-slate-200">
-                    <p className="text-[10px] text-slate-400 uppercase font-semibold">Restrições Carregadas</p>
-                    <p className="text-xs font-bold text-slate-800">{settings?.solver_diagnostics?.constraints_loaded || 7} Regras Ativas</p>
-                  </div>
+                <div className="flex justify-between p-2.5 bg-slate-50 rounded-lg">
+                  <span className="text-slate-500">Restrições Rígidas (*Hard*):</span>
+                  <span className="font-bold text-slate-800">0 Choques (Invioláveis)</span>
                 </div>
-
-                <div className="text-[11px] text-slate-600 pt-1">
-                  <strong>Algoritmo:</strong> {settings?.solver_algorithm || 'Híbrido Construtivo + Busca Local Tabu'}
+                <div className="flex justify-between p-2.5 bg-slate-50 rounded-lg">
+                  <span className="text-slate-500">Latência Média de Execução:</span>
+                  <span className="font-bold text-indigo-600">&lt; 0.15s</span>
                 </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleTestSolver}
+                  disabled={testingSolver}
+                  className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs shadow-xs transition cursor-pointer disabled:opacity-50"
+                >
+                  {testingSolver ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Calibrando Solver...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Cpu className="w-4 h-4" />
+                      <span>Executar Diagnóstico do Solver</span>
+                    </>
+                  )}
+                </button>
               </div>
 
               {solverTestResult && (
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 font-medium">
+                <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-900 animate-in fade-in">
                   {solverTestResult}
                 </div>
               )}
             </div>
-
-            <div className="pt-4 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={handleTestSolver}
-                disabled={testingSolver}
-                className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition cursor-pointer"
-              >
-                {testingSolver ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin text-slate-500" />
-                    <span>Testando Conexão...</span>
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="w-4 h-4 text-slate-500" />
-                    <span>Testar Conexão do Solver</span>
-                  </>
-                )}
-              </button>
-            </div>
           </div>
         </div>
       )}
 
-      {/* 5. SECTION 3: ROLES & PERMISSIONS MATRIX */}
+      {/* 7. SECTION 5: ROLES & RBAC MATRIX */}
       {activeSection === 'roles' && (
         <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6 space-y-6">
-          <div className="pb-4 border-b border-slate-100">
-            <h3 className="text-base font-bold text-slate-900">Matriz de Papéis e Permissões Institucionais</h3>
-            <p className="text-xs text-slate-500">Visão consolidada do escopo de cada nível de acesso dentro do sistema EduSchedule AI.</p>
+          <div className="flex items-center space-x-3 pb-4 border-b border-slate-100">
+            <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-100 text-purple-600 flex items-center justify-center">
+              <ShieldAlert className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900">Matriz de Papéis e Níveis de Permissão (RBAC)</h3>
+              <p className="text-xs text-slate-500">
+                Políticas de autorização e privilégios de acesso aos módulos do sistema.
+              </p>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {/* Admin Card */}
-            <div className="p-5 rounded-xl border border-purple-200 bg-purple-50/40 space-y-3">
-              <div className="flex items-center space-x-2.5">
-                <div className="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center font-bold">
-                  <Shield className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-purple-950">Administrador Geral</h4>
-                  <span className="text-[10px] text-purple-700 font-semibold">Acesso Irrestrito</span>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 bg-purple-50/60 rounded-xl border border-purple-200 space-y-2">
+              <div className="flex items-center space-x-2">
+                <Shield className="w-4 h-4 text-purple-700" />
+                <h4 className="font-bold text-purple-900 text-xs">Administrador Geral</h4>
               </div>
-              <ul className="text-xs text-slate-600 space-y-1.5 list-disc pl-4">
-                <li>Gestão completa de usuários e acessos</li>
-                <li>Ativação, desativação e reset de senhas</li>
-                <li>Parâmetros globais da instituição e ano letivo</li>
-                <li>Configuração e diagnóstico do motor de IA</li>
-                <li>Acesso irrestrito a todas as grades e dados</li>
-              </ul>
+              <p className="text-[11px] text-purple-800">
+                Acesso irrestrito a configurações globais, banco de dados, reset de senhas, criação de turmas, disciplinas e telemetria do Solver.
+              </p>
             </div>
 
-            {/* Coordinator Card */}
-            <div className="p-5 rounded-xl border border-blue-200 bg-blue-50/40 space-y-3">
-              <div className="flex items-center space-x-2.5">
-                <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold">
-                  <Users className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-blue-950">Coordenador Pedagógico</h4>
-                  <span className="text-[10px] text-blue-700 font-semibold">Gestão Pedagógica</span>
-                </div>
+            <div className="p-4 bg-blue-50/60 rounded-xl border border-blue-200 space-y-2">
+              <div className="flex items-center space-x-2">
+                <Shield className="w-4 h-4 text-blue-700" />
+                <h4 className="font-bold text-blue-900 text-xs">Coordenador Pedagógico</h4>
               </div>
-              <ul className="text-xs text-slate-600 space-y-1.5 list-disc pl-4">
-                <li>Visualização e edição da Matriz de Horários</li>
-                <li>Execução e ajuste fino do Solver de IA</li>
-                <li>Gestão de professores, turmas e salas</li>
-                <li>Parametrização de restrições rígidas/flexíveis</li>
-                <li>Importação de docentes em lote via CSV</li>
-              </ul>
+              <p className="text-[11px] text-blue-800">
+                Executa o Solver, ajusta pesos e restrições, edita matriz curricular, cadastra docentes e realiza alocações manuais na grade.
+              </p>
             </div>
 
-            {/* Teacher Card */}
-            <div className="p-5 rounded-xl border border-emerald-200 bg-emerald-50/40 space-y-3">
-              <div className="flex items-center space-x-2.5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold">
-                  <CheckCircle2 className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-emerald-950">Professor / Docente</h4>
-                  <span className="text-[10px] text-emerald-700 font-semibold">Área do Docente</span>
-                </div>
+            <div className="p-4 bg-emerald-50/60 rounded-xl border border-emerald-200 space-y-2">
+              <div className="flex items-center space-x-2">
+                <Shield className="w-4 h-4 text-emerald-700" />
+                <h4 className="font-bold text-emerald-900 text-xs">Professor / Docente</h4>
               </div>
-              <ul className="text-xs text-slate-600 space-y-1.5 list-disc pl-4">
-                <li>Consulta à sua Grade Semanal de Aulas</li>
-                <li>Visualização de horários por turma</li>
-                <li>Declaração de matriz de disponibilidade semanal</li>
-                <li>Marcação de preferências e bloqueios absolutos</li>
-                <li>Impressão e consulta de salas atribuídas</li>
-              </ul>
+              <p className="text-[11px] text-emerald-800">
+                Acesso exclusivo ao Portal do Professor para consulta individualizada de seus horários e declaração de disponibilidade semanal.
+              </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* New User Modal */}
+      {/* MODALS */}
       <NewUserModal
         isOpen={isNewUserModalOpen}
         onClose={() => setIsNewUserModalOpen(false)}
-        onUserCreated={(newUser) => {
-          setUsers((prev) => [newUser, ...prev]);
-        }}
+        onUserCreated={handleUserCreated}
       />
 
-      {/* Edit User Modal */}
       <EditUserModal
         isOpen={Boolean(userToEdit)}
         user={userToEdit}
@@ -850,71 +1310,69 @@ export const AdminPanelPage: React.FC<AdminPanelPageProps> = ({
         onUserUpdated={handleUserUpdated}
       />
 
-      {/* Reset Password Modal */}
       <ResetPasswordModal
         isOpen={Boolean(userToResetPassword)}
         user={userToResetPassword}
         onClose={() => setUserToResetPassword(null)}
       />
 
-      {/* Delete User Confirmation Modal */}
+      <NewClassModal
+        isOpen={isNewClassModalOpen}
+        onClose={() => {
+          setIsNewClassModalOpen(false);
+          setClassToEdit(null);
+        }}
+        onSaved={loadAdminData}
+        classToEdit={classToEdit}
+        shifts={shifts}
+      />
+
+      <NewSubjectModal
+        isOpen={isNewSubjectModalOpen}
+        onClose={() => {
+          setIsNewSubjectModalOpen(false);
+          setSubjectToEdit(null);
+        }}
+        onSaved={loadAdminData}
+        subjectToEdit={subjectToEdit}
+      />
+
+      <NewCurriculumModal
+        isOpen={isNewCurriculumModalOpen}
+        onClose={() => {
+          setIsNewCurriculumModalOpen(false);
+          setCurriculumToEdit(null);
+        }}
+        onSaved={loadAdminData}
+        curriculumToEdit={curriculumToEdit}
+        classes={classes}
+        subjects={subjects}
+        teachers={teachers}
+        preselectedClassId={selectedCurriculumClassId}
+      />
+
+      {/* Delete User Modal */}
       {userToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden p-6 space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center mx-auto">
               <ShieldAlert className="w-6 h-6" />
             </div>
-
             <div className="text-center space-y-2">
               <h3 className="text-base font-bold text-slate-900">Excluir Conta de Acesso?</h3>
               <p className="text-xs text-slate-500">
-                Tem certeza que deseja apagar a conta selecionada?
+                Tem certeza que deseja apagar a conta selecionada ({userToDelete.full_name})?
               </p>
-              
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-left space-y-1">
-                <div className="font-bold text-slate-900 text-xs flex items-center justify-between">
-                  <span>{userToDelete.full_name}</span>
-                  <span className={`inline-flex items-center space-x-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                    userToDelete.role === 'admin'
-                      ? 'bg-purple-50 text-purple-700 border-purple-200'
-                      : userToDelete.role === 'coordinator'
-                      ? 'bg-blue-50 text-blue-700 border-blue-200'
-                      : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  }`}>
-                    <Shield className="w-2.5 h-2.5" />
-                    <span>{userToDelete.role_label}</span>
-                  </span>
-                </div>
-                <div className="text-[11px] text-slate-500">{userToDelete.email || userToDelete.username}</div>
-                <div className="text-[10px] text-slate-400">Departamento: {userToDelete.department || 'Geral'}</div>
-              </div>
-
-              {userToDelete.role === 'admin' && (
-                <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-left text-[11px] text-amber-800">
-                  ⚠️ <strong>Atenção:</strong> Você está excluindo uma conta de nível <strong>Administrador Geral</strong>. Os acessos totais de configuração deste usuário serão revogados.
-                </div>
-              )}
-
-              {userToDelete.role === 'coordinator' && (
-                <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-lg text-left text-[11px] text-blue-800">
-                  ℹ️ Você está excluindo um <strong>Coordenador Pedagógico</strong>. As grades horárias, salas e turmas criadas permanecerão preservadas no sistema.
-                </div>
-              )}
-
               {deleteErrorMessage && (
                 <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-left text-xs text-rose-700">
                   {deleteErrorMessage}
                 </div>
               )}
             </div>
-
             <div className="flex items-center space-x-2 pt-2">
               <button
                 type="button"
-                onClick={() => {
-                  setUserToDelete(null);
-                  setDeleteErrorMessage(null);
-                }}
+                onClick={() => setUserToDelete(null)}
                 disabled={isDeleting}
                 className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition cursor-pointer"
               >
@@ -924,19 +1382,118 @@ export const AdminPanelPage: React.FC<AdminPanelPageProps> = ({
                 type="button"
                 onClick={handleConfirmDelete}
                 disabled={isDeleting}
-                className="flex-1 flex items-center justify-center space-x-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer disabled:opacity-50"
+                className="flex-1 flex items-center justify-center space-x-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
               >
-                {isDeleting ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Excluindo...</span>
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4" />
-                    <span>Sim, Excluir</span>
-                  </>
-                )}
+                {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                <span>Excluir</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Class Modal */}
+      {classToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden p-6 space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+              <GraduationCap className="w-6 h-6" />
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-base font-bold text-slate-900">Excluir Turma?</h3>
+              <p className="text-xs text-slate-500">
+                Tem certeza que deseja apagar a turma <strong>{classToDelete.name}</strong>? A matriz curricular associada será removida.
+              </p>
+            </div>
+            <div className="flex items-center space-x-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setClassToDelete(null)}
+                disabled={isDeletingClass}
+                className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteClass}
+                disabled={isDeletingClass}
+                className="flex-1 flex items-center justify-center space-x-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
+              >
+                {isDeletingClass ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                <span>Excluir Turma</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Subject Modal */}
+      {subjectToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden p-6 space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+              <BookOpen className="w-6 h-6" />
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-base font-bold text-slate-900">Excluir Disciplina?</h3>
+              <p className="text-xs text-slate-500">
+                Tem certeza que deseja apagar a disciplina <strong>{subjectToDelete.name} ({subjectToDelete.code})</strong>?
+              </p>
+            </div>
+            <div className="flex items-center space-x-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setSubjectToDelete(null)}
+                disabled={isDeletingSubject}
+                className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteSubject}
+                disabled={isDeletingSubject}
+                className="flex-1 flex items-center justify-center space-x-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
+              >
+                {isDeletingSubject ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                <span>Excluir Disciplina</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Curriculum Requirement Modal */}
+      {curriculumToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden p-6 space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+              <Layers className="w-6 h-6" />
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-base font-bold text-slate-900">Remover da Matriz Curricular?</h3>
+              <p className="text-xs text-slate-500">
+                Deseja remover <strong>{curriculumToDelete.subject_name}</strong> da grade desta turma? O solver não alocará mais estas aulas para a turma.
+              </p>
+            </div>
+            <div className="flex items-center space-x-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setCurriculumToDelete(null)}
+                disabled={isDeletingCurriculum}
+                className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteCurriculum}
+                disabled={isDeletingCurriculum}
+                className="flex-1 flex items-center justify-center space-x-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
+              >
+                {isDeletingCurriculum ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                <span>Remover Vínculo</span>
               </button>
             </div>
           </div>
@@ -945,3 +1502,5 @@ export const AdminPanelPage: React.FC<AdminPanelPageProps> = ({
     </div>
   );
 };
+
+export default AdminPanelPage;

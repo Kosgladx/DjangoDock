@@ -67,9 +67,24 @@ export interface SchoolClass {
   name: string;
   grade_level: string;
   shift: number;
+  shift_name?: string;
   student_count: number;
   default_room?: number;
   total_weekly_lessons: number;
+}
+
+export interface CurriculumRequirement {
+  id: number;
+  school_class: number;
+  class_name?: string;
+  subject: number;
+  subject_name?: string;
+  subject_code?: string;
+  subject_color?: string;
+  teacher: number;
+  teacher_name?: string;
+  weekly_lessons: number;
+  double_lessons_allowed: boolean;
 }
 
 export interface ConstraintConfig {
