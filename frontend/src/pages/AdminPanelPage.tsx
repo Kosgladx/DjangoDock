@@ -18,6 +18,7 @@ import { EditUserModal } from '../components/EditUserModal';
 import { NewClassModal } from '../components/NewClassModal';
 import { NewSubjectModal } from '../components/NewSubjectModal';
 import { NewCurriculumModal } from '../components/NewCurriculumModal';
+import { BlastRadiusModal } from '../components/BlastRadiusModal';
 
 interface AdminPanelPageProps {
   currentUser: UserSession | null;
@@ -1351,153 +1352,128 @@ export const AdminPanelPage: React.FC<AdminPanelPageProps> = ({
         preselectedClassId={selectedCurriculumClassId}
       />
 
-      {/* Delete User Modal */}
+      {/* Blast Radius Delete User Modal */}
       {userToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden p-6 space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center mx-auto">
-              <ShieldAlert className="w-6 h-6" />
-            </div>
-            <div className="text-center space-y-2">
-              <h3 className="text-base font-bold text-slate-900">Excluir Conta de Acesso?</h3>
-              <p className="text-xs text-slate-500">
-                Tem certeza que deseja apagar a conta selecionada ({userToDelete.full_name})?
-              </p>
-              {deleteErrorMessage && (
-                <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-left text-xs text-rose-700">
-                  {deleteErrorMessage}
-                </div>
-              )}
-            </div>
-            <div className="flex items-center space-x-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setUserToDelete(null)}
-                disabled={isDeleting}
-                className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDelete}
-                disabled={isDeleting}
-                className="flex-1 flex items-center justify-center space-x-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
-              >
-                {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                <span>Excluir</span>
-              </button>
-            </div>
-          </div>
-        </div>
+        <BlastRadiusModal
+          isOpen={!!userToDelete}
+          onClose={() => {
+            setUserToDelete(null);
+            setDeleteErrorMessage(null);
+          }}
+          onConfirm={handleConfirmDelete}
+          isDeleting={isDeleting}
+          errorMessage={deleteErrorMessage}
+          title="Excluir Conta de Usuário"
+          entityName={userToDelete.full_name}
+          entityType={`Conta de Acesso (${userToDelete.role_label})`}
+          consequences={[
+            {
+              title: 'Revogação Total de Acesso',
+              detail: 'O usuário será imediatamente desconectado e impedido de autenticar no sistema.',
+              severity: 'critical',
+            },
+            {
+              title: 'Eliminação de Perfil e Histórico',
+              detail: 'Metadados de sessão, logs de auditoria e preferências do painel serão purgados.',
+              severity: 'high',
+            },
+            {
+              title: 'Vínculos Acadêmicos (Docência)',
+              detail: 'Se este usuário estiver associado a um professor, as alocações pedagógicas associadas poderão ser desreguladas.',
+              severity: 'medium',
+            },
+          ]}
+        />
       )}
 
-      {/* Delete Class Modal */}
+      {/* Blast Radius Delete Class Modal */}
       {classToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden p-6 space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center mx-auto">
-              <GraduationCap className="w-6 h-6" />
-            </div>
-            <div className="text-center space-y-2">
-              <h3 className="text-base font-bold text-slate-900">Excluir Turma?</h3>
-              <p className="text-xs text-slate-500">
-                Tem certeza que deseja apagar a turma <strong>{classToDelete.name}</strong>? A matriz curricular associada será removida.
-              </p>
-            </div>
-            <div className="flex items-center space-x-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setClassToDelete(null)}
-                disabled={isDeletingClass}
-                className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDeleteClass}
-                disabled={isDeletingClass}
-                className="flex-1 flex items-center justify-center space-x-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
-              >
-                {isDeletingClass ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                <span>Excluir Turma</span>
-              </button>
-            </div>
-          </div>
-        </div>
+        <BlastRadiusModal
+          isOpen={!!classToDelete}
+          onClose={() => setClassToDelete(null)}
+          onConfirm={handleConfirmDeleteClass}
+          isDeleting={isDeletingClass}
+          title="Excluir Turma"
+          entityName={classToDelete.name}
+          entityType={`Turma Escolar (${classToDelete.grade_level || 'Geral'})`}
+          consequences={[
+            {
+              title: 'Destruição da Matriz Curricular da Turma',
+              detail: 'Todos os requisitos de disciplinas e cargas horárias semanais vinculadas a esta turma serão expurgados do banco de dados.',
+              severity: 'critical',
+            },
+            {
+              title: 'Remoção de Aulas da Grade Ativa',
+              detail: 'Quaisquer aulas já distribuídas na grade do colégio pertencentes a esta turma desaparecerão imediatamente.',
+              severity: 'critical',
+            },
+            {
+              title: 'Impacto no Motor de Otimização',
+              detail: 'O solver descartará a turma de todas as instâncias em memória e os cálculos de viabilidade serão redefinidos.',
+              severity: 'high',
+            },
+          ]}
+        />
       )}
 
-      {/* Delete Subject Modal */}
+      {/* Blast Radius Delete Subject Modal */}
       {subjectToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden p-6 space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center mx-auto">
-              <BookOpen className="w-6 h-6" />
-            </div>
-            <div className="text-center space-y-2">
-              <h3 className="text-base font-bold text-slate-900">Excluir Disciplina?</h3>
-              <p className="text-xs text-slate-500">
-                Tem certeza que deseja apagar a disciplina <strong>{subjectToDelete.name} ({subjectToDelete.code})</strong>?
-              </p>
-            </div>
-            <div className="flex items-center space-x-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setSubjectToDelete(null)}
-                disabled={isDeletingSubject}
-                className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDeleteSubject}
-                disabled={isDeletingSubject}
-                className="flex-1 flex items-center justify-center space-x-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
-              >
-                {isDeletingSubject ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                <span>Excluir Disciplina</span>
-              </button>
-            </div>
-          </div>
-        </div>
+        <BlastRadiusModal
+          isOpen={!!subjectToDelete}
+          onClose={() => setSubjectToDelete(null)}
+          onConfirm={handleConfirmDeleteSubject}
+          isDeleting={isDeletingSubject}
+          title="Excluir Disciplina"
+          entityName={`${subjectToDelete.name} (${subjectToDelete.code})`}
+          entityType="Disciplina / Matéria"
+          consequences={[
+            {
+              title: 'Expurgo Curricular em Cascata',
+              detail: 'Esta disciplina será eliminada da matriz de TODAS as turmas da instituição que a possuem.',
+              severity: 'critical',
+            },
+            {
+              title: 'Aulas Alocadas na Grade Ativa',
+              detail: 'Todas as aulas desta matéria na grade oficial serão excluídas, gerando janelas/vazios nos horários.',
+              severity: 'critical',
+            },
+            {
+              title: 'Desvinculação Docente',
+              detail: 'Professores que ministravam esta matéria perderão o vínculo pedagógico nas turmas afetadas.',
+              severity: 'high',
+            },
+          ]}
+        />
       )}
 
-      {/* Delete Curriculum Requirement Modal */}
+      {/* Blast Radius Delete Curriculum Requirement Modal */}
       {curriculumToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden p-6 space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center mx-auto">
-              <Layers className="w-6 h-6" />
-            </div>
-            <div className="text-center space-y-2">
-              <h3 className="text-base font-bold text-slate-900">Remover da Matriz Curricular?</h3>
-              <p className="text-xs text-slate-500">
-                Deseja remover <strong>{curriculumToDelete.subject_name}</strong> da grade desta turma? O solver não alocará mais estas aulas para a turma.
-              </p>
-            </div>
-            <div className="flex items-center space-x-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setCurriculumToDelete(null)}
-                disabled={isDeletingCurriculum}
-                className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDeleteCurriculum}
-                disabled={isDeletingCurriculum}
-                className="flex-1 flex items-center justify-center space-x-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
-              >
-                {isDeletingCurriculum ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                <span>Remover Vínculo</span>
-              </button>
-            </div>
-          </div>
-        </div>
+        <BlastRadiusModal
+          isOpen={!!curriculumToDelete}
+          onClose={() => setCurriculumToDelete(null)}
+          onConfirm={handleConfirmDeleteCurriculum}
+          isDeleting={isDeletingCurriculum}
+          title="Remover Exigência Curricular"
+          entityName={`${curriculumToDelete.subject_name} (${curriculumToDelete.weekly_lessons} aulas/sem)`}
+          entityType="Requisito Curricular"
+          consequences={[
+            {
+              title: 'Redução da Carga Horária Semanal',
+              detail: `A turma perderá ${curriculumToDelete.weekly_lessons} aulas semanais desta disciplina no planejamento.`,
+              severity: 'high',
+            },
+            {
+              title: 'Desalocação no Solver',
+              detail: 'As aulas desta matéria para a turma serão desfeitas e não farão mais parte da grade.',
+              severity: 'high',
+            },
+            {
+              title: 'Desvinculação do Docente',
+              detail: `O professor ${curriculumToDelete.teacher_name || 'atribuído'} deixará de lecionar esta carga para a turma.`,
+              severity: 'medium',
+            },
+          ]}
+        />
       )}
     </div>
   );

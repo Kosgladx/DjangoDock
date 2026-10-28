@@ -3,10 +3,11 @@ import type { Teacher, TimeSlot } from '../types';
 import { api } from '../services/api';
 import {
   Search, Plus, Save, CheckCircle2, Download, Users,
-  Pencil, Trash2, AlertTriangle, Loader2
+  Pencil, Trash2
 } from 'lucide-react';
 import { NewTeacherModal } from '../components/NewTeacherModal';
 import { ImportTeachersCSVModal } from '../components/ImportTeachersCSVModal';
+import { BlastRadiusModal } from '../components/BlastRadiusModal';
 
 interface TeachersPageProps {
   teachers: Teacher[];
@@ -550,76 +551,39 @@ export const TeachersPage: React.FC<TeachersPageProps> = ({
         onImportSuccess={() => onRefresh()}
       />
 
-      {/* Delete Confirmation Modal */}
+      {/* Blast Radius Delete Confirmation Modal */}
       {teacherToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
-            <div className="p-6 space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center mx-auto">
-                <AlertTriangle className="w-6 h-6" />
-              </div>
-
-              <div className="text-center space-y-1">
-                <h3 className="text-base font-bold text-slate-900">Excluir Professor?</h3>
-                <p className="text-xs text-slate-500">
-                  Esta ação é irreversível. O docente, suas disponibilidades declaradas e eventuais alocações na grade serão removidos.
-                </p>
-              </div>
-
-              {/* Teacher Summary Box */}
-              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center space-x-3">
-                {teacherToDelete.photo ? (
-                  <img
-                    src={teacherToDelete.photo}
-                    alt={teacherToDelete.name}
-                    className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0"
-                  />
-                ) : (
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shrink-0"
-                    style={{ backgroundColor: `${teacherToDelete.color}20`, color: teacherToDelete.color }}
-                  >
-                    {teacherToDelete.avatar_initials}
-                  </div>
-                )}
-                <div className="truncate text-left">
-                  <p className="text-xs font-bold text-slate-900 truncate">{teacherToDelete.name}</p>
-                  <p className="text-[11px] text-slate-500 truncate">{teacherToDelete.email}</p>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center space-x-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setTeacherToDelete(null)}
-                  disabled={isDeleting}
-                  className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmDelete}
-                  disabled={isDeleting}
-                  className="flex-1 flex items-center justify-center space-x-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
-                >
-                  {isDeleting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Excluindo...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 className="w-4 h-4" />
-                      <span>Sim, Excluir</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <BlastRadiusModal
+          isOpen={!!teacherToDelete}
+          onClose={() => setTeacherToDelete(null)}
+          onConfirm={handleConfirmDelete}
+          isDeleting={isDeleting}
+          title="Excluir Professor"
+          entityName={teacherToDelete.name}
+          entityType={`Docente (${shiftLabels[teacherToDelete.shift_preference] || 'Geral'})`}
+          consequences={[
+            {
+              title: 'Disponibilidade Semanal Expurgada',
+              detail: 'Todas as preferências e bloqueios de horários declarados para este docente serão apagados.',
+              severity: 'high',
+            },
+            {
+              title: 'Destruição de Requisitos Curriculares',
+              detail: 'As disciplinas que este professor lecionava na matriz das turmas serão removidas ou desreguladas.',
+              severity: 'critical',
+            },
+            {
+              title: 'Aulas Alocadas na Grade Ativa',
+              detail: 'Todas as aulas deste professor já distribuídas em grades existentes desaparecerão imediatamente.',
+              severity: 'critical',
+            },
+            {
+              title: 'Perda de Registro Histórico e MEC',
+              detail: 'A autoria das aulas ministradas por este professor em períodos anteriores não poderá ser auditada.',
+              severity: 'critical',
+            },
+          ]}
+        />
       )}
     </div>
   );
