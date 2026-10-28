@@ -37,6 +37,7 @@ Independentemente de quem estiver no chat, a IA deve garantir o cumprimento das 
 ## 3. Metodologia de Desenvolvimento e Ritmo
 
 - **Vertical Slice:** Construir o software em fatias pequenas, testáveis e funcionais de ponta a ponta, em vez de tentar montar vários módulos grandes e incompletos ao mesmo tempo.
+- **Cadência de Sprints:** Sprints operam em ciclos de **terça a terça**, com homologação e entregas para apresentação/banca às **quartas-feiras**.
 - **Uma peça por vez:** Não despeje muitas decisões de arquitetura ou blocos de informação em uma única mensagem. Quebre em etapas e confirme o entendimento antes de avançar.
 - **Erros são bem-vindos:** Erros em POO, herança, mocks e testes automatizados fazem parte do aprendizado. Trate os erros com paciência e incentivo analítico.
 
@@ -98,5 +99,5 @@ Quando o desenvolvedor disser no chat *"terminei meu trabalho"*, *"faça o que t
    - Fazer o commit semântico e `git push origin <branch>`.
    - Orientar o desenvolvedor a abrir o Pull Request no GitHub apontando para a `main`.
    - Marcar o **Kauê Loreno (Tech Lead)** como Reviewer.
-   - ⚠️ Alertar explicitamente o desenvolvedor para **NÃO clicar em Merge**. O merge é exclusividade do ritual de homologação na sexta-feira.
+   - ⚠️ Alertar explicitamente o desenvolvedor para **NÃO clicar em Merge**. O merge na `main` é exclusividade do Tech Lead (Kauê Loreno) na homologação e entrega às quartas-feiras (ciclo de sprint de terça a terça).
 
