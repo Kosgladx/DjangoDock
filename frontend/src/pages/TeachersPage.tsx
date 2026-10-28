@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
 import type { Teacher, TimeSlot } from '../types';
 import { api } from '../services/api';
-import { Search, Plus, Save, CheckCircle2, Download, Users } from 'lucide-react';
+import {
+  Search, Plus, Save, CheckCircle2, Download, Users,
+  Pencil, Trash2
+} from 'lucide-react';
 import { NewTeacherModal } from '../components/NewTeacherModal';
 import { ImportTeachersCSVModal } from '../components/ImportTeachersCSVModal';
+import { BlastRadiusModal } from '../components/BlastRadiusModal';
 
 interface TeachersPageProps {
   teachers: Teacher[];
@@ -37,10 +41,37 @@ export const TeachersPage: React.FC<TeachersPageProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCSVModalOpen, setIsCSVModalOpen] = useState(false);
+  const [teacherToEdit, setTeacherToEdit] = useState<Teacher | null>(null);
+  const [teacherToDelete, setTeacherToDelete] = useState<Teacher | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleTeacherCreated = (newTeacher: Teacher) => {
-    setSelectedTeacherId(newTeacher.id);
+  const handleOpenNewModal = () => {
+    setTeacherToEdit(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (teacher: Teacher) => {
+    setTeacherToEdit(teacher);
+    setIsModalOpen(true);
+  };
+
+  const handleTeacherSaved = (savedTeacher: Teacher) => {
+    setSelectedTeacherId(savedTeacher.id);
     onRefresh();
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!teacherToDelete) return;
+    setIsDeleting(true);
+    try {
+      await api.deleteTeacher(teacherToDelete.id);
+      setTeacherToDelete(null);
+      onRefresh();
+    } catch (err: any) {
+      alert('Erro ao excluir professor: ' + (err.message || err));
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const selectedTeacher = teachers.find(t => t.id === selectedTeacherId) || teachers[0];
@@ -237,7 +268,7 @@ export const TeachersPage: React.FC<TeachersPageProps> = ({
           </button>
 
           <button 
-            onClick={() => setIsModalOpen(true)}
+            onClick={handleOpenNewModal}
             className="flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
           >
             <Plus className="w-4 h-4" />
@@ -265,7 +296,7 @@ export const TeachersPage: React.FC<TeachersPageProps> = ({
                 </div>
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(true)}
+                  onClick={handleOpenNewModal}
                   className="inline-flex items-center space-x-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -315,10 +346,36 @@ export const TeachersPage: React.FC<TeachersPageProps> = ({
                     </div>
                   </div>
 
-                  <div>
+                  <div className="flex items-center space-x-2">
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all ${statusInfo.badgeClass}`}>
                       {statusInfo.label}
                     </span>
+
+                    {/* Action buttons on teacher row */}
+                    <div className="flex items-center space-x-1 shrink-0 ml-1">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenEditModal(t);
+                        }}
+                        className="p-1 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
+                        title="Editar este professor"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTeacherToDelete(t);
+                        }}
+                        className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                        title="Excluir este professor"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -330,26 +387,50 @@ export const TeachersPage: React.FC<TeachersPageProps> = ({
         {selectedTeacher && (
           <div className="lg:col-span-5 bg-white rounded-xl border border-slate-200 shadow-xs p-5 space-y-5">
             {/* Teacher Quick Card */}
-            <div className="bg-indigo-50/70 border border-indigo-100 rounded-xl p-4 flex items-center space-x-3.5">
-              {selectedTeacher.photo ? (
-                <img
-                  src={selectedTeacher.photo}
-                  alt={selectedTeacher.name}
-                  className="w-12 h-12 rounded-full object-cover shadow-xs border-2 border-indigo-200 shrink-0"
-                />
-              ) : (
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-base shadow-xs shrink-0"
-                  style={{ backgroundColor: `${selectedTeacher.color}25`, color: selectedTeacher.color }}
-                >
-                  {selectedTeacher.avatar_initials}
+            <div className="bg-indigo-50/70 border border-indigo-100 rounded-xl p-4 flex items-center justify-between gap-3">
+              <div className="flex items-center space-x-3.5 min-w-0">
+                {selectedTeacher.photo ? (
+                  <img
+                    src={selectedTeacher.photo}
+                    alt={selectedTeacher.name}
+                    className="w-12 h-12 rounded-full object-cover shadow-xs border-2 border-indigo-200 shrink-0"
+                  />
+                ) : (
+                  <div
+                    className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-base shadow-xs shrink-0"
+                    style={{ backgroundColor: `${selectedTeacher.color}25`, color: selectedTeacher.color }}
+                  >
+                    {selectedTeacher.avatar_initials}
+                  </div>
+                )}
+                <div className="truncate">
+                  <h4 className="text-sm font-bold text-indigo-950 truncate">{selectedTeacher.name}</h4>
+                  <p className="text-xs text-indigo-700 truncate">
+                    Carga: {selectedTeacher.max_weekly_hours} tempos/semana • Turno: {shiftLabels[selectedTeacher.shift_preference] || selectedTeacher.shift_preference || 'Qualquer'}
+                  </p>
                 </div>
-              )}
-              <div>
-                <h4 className="text-sm font-bold text-indigo-950">{selectedTeacher.name}</h4>
-                <p className="text-xs text-indigo-700">
-                  Carga: {selectedTeacher.max_weekly_hours} tempos/semana • Turno: {shiftLabels[selectedTeacher.shift_preference] || selectedTeacher.shift_preference || 'Qualquer'}
-                </p>
+              </div>
+
+              {/* Action buttons on quick card */}
+              <div className="flex items-center space-x-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleOpenEditModal(selectedTeacher)}
+                  className="flex items-center space-x-1 px-2.5 py-1.5 bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
+                  title="Editar dados deste professor"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Editar</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTeacherToDelete(selectedTeacher)}
+                  className="flex items-center space-x-1 px-2.5 py-1.5 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
+                  title="Excluir este professor"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Excluir</span>
+                </button>
               </div>
             </div>
 
@@ -451,11 +532,16 @@ export const TeachersPage: React.FC<TeachersPageProps> = ({
         )}
       </section>
 
-      {/* New Teacher Modal */}
+      {/* New / Edit Teacher Modal */}
       <NewTeacherModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onTeacherCreated={handleTeacherCreated}
+        onClose={() => {
+          setIsModalOpen(false);
+          setTeacherToEdit(null);
+        }}
+        teacherToEdit={teacherToEdit}
+        onTeacherCreated={handleTeacherSaved}
+        onTeacherUpdated={handleTeacherSaved}
       />
 
       {/* Import Teachers CSV Modal */}
@@ -464,6 +550,41 @@ export const TeachersPage: React.FC<TeachersPageProps> = ({
         onClose={() => setIsCSVModalOpen(false)}
         onImportSuccess={() => onRefresh()}
       />
+
+      {/* Blast Radius Delete Confirmation Modal */}
+      {teacherToDelete && (
+        <BlastRadiusModal
+          isOpen={!!teacherToDelete}
+          onClose={() => setTeacherToDelete(null)}
+          onConfirm={handleConfirmDelete}
+          isDeleting={isDeleting}
+          title="Excluir Professor"
+          entityName={teacherToDelete.name}
+          entityType={`Docente (${shiftLabels[teacherToDelete.shift_preference] || 'Geral'})`}
+          consequences={[
+            {
+              title: 'Disponibilidade Semanal Expurgada',
+              detail: 'Todas as preferências e bloqueios de horários declarados para este docente serão apagados.',
+              severity: 'high',
+            },
+            {
+              title: 'Destruição de Requisitos Curriculares',
+              detail: 'As disciplinas que este professor lecionava na matriz das turmas serão removidas ou desreguladas.',
+              severity: 'critical',
+            },
+            {
+              title: 'Aulas Alocadas na Grade Ativa',
+              detail: 'Todas as aulas deste professor já distribuídas em grades existentes desaparecerão imediatamente.',
+              severity: 'critical',
+            },
+            {
+              title: 'Perda de Registro Histórico e MEC',
+              detail: 'A autoria das aulas ministradas por este professor em períodos anteriores não poderá ser auditada.',
+              severity: 'critical',
+            },
+          ]}
+        />
+      )}
     </div>
   );
 };

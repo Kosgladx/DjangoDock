@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   X, UserPlus, Sparkles, Check, AlertCircle, Loader2,
-  Camera, Upload, Trash2, Image as ImageIcon
+  Camera, Upload, Trash2, Image as ImageIcon, Pencil
 } from 'lucide-react';
 import type { Teacher } from '../types';
 import { api } from '../services/api';
@@ -9,7 +9,9 @@ import { api } from '../services/api';
 interface NewTeacherModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onTeacherCreated: (teacher: Teacher) => void;
+  onTeacherCreated?: (teacher: Teacher) => void;
+  teacherToEdit?: Teacher | null;
+  onTeacherUpdated?: (teacher: Teacher) => void;
 }
 
 const COLOR_PALETTE = [
@@ -52,7 +54,11 @@ export const NewTeacherModal: React.FC<NewTeacherModalProps> = ({
   isOpen,
   onClose,
   onTeacherCreated,
+  teacherToEdit,
+  onTeacherUpdated,
 }) => {
+  const isEditing = Boolean(teacherToEdit);
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [avatarInitials, setAvatarInitials] = useState('');
@@ -72,29 +78,45 @@ export const NewTeacherModal: React.FC<NewTeacherModalProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!hasManualInitials) {
+    if (!hasManualInitials && !isEditing) {
       setAvatarInitials(getInitialsFromName(name));
     }
-  }, [name, hasManualInitials]);
+  }, [name, hasManualInitials, isEditing]);
 
-  // Reset form when modal opens
+  // Reset form or prefill when modal opens
   useEffect(() => {
     if (isOpen) {
-      setName('');
-      setEmail('');
-      setAvatarInitials('DOC');
-      setHasManualInitials(false);
-      setColor(COLOR_PALETTE[Math.floor(Math.random() * COLOR_PALETTE.length)]);
-      setMaxWeeklyHours(20);
-      setMaxDailyHours(4);
-      setShiftPreference('ANY');
-      setAllowDoubleLessons(true);
-      setPhotoFile(null);
-      setPhotoPreview(null);
-      setErrorMessage(null);
-      setLoading(false);
+      if (teacherToEdit) {
+        setName(teacherToEdit.name || '');
+        setEmail(teacherToEdit.email || '');
+        setAvatarInitials(teacherToEdit.avatar_initials || getInitialsFromName(teacherToEdit.name));
+        setHasManualInitials(true);
+        setColor(teacherToEdit.color || COLOR_PALETTE[0]);
+        setMaxWeeklyHours(teacherToEdit.max_weekly_hours || 20);
+        setMaxDailyHours(teacherToEdit.max_daily_hours || 4);
+        setShiftPreference((teacherToEdit.shift_preference as any) || 'ANY');
+        setAllowDoubleLessons(teacherToEdit.allow_double_lessons ?? true);
+        setPhotoFile(null);
+        setPhotoPreview(teacherToEdit.photo || null);
+        setErrorMessage(null);
+        setLoading(false);
+      } else {
+        setName('');
+        setEmail('');
+        setAvatarInitials('DOC');
+        setHasManualInitials(false);
+        setColor(COLOR_PALETTE[Math.floor(Math.random() * COLOR_PALETTE.length)]);
+        setMaxWeeklyHours(20);
+        setMaxDailyHours(4);
+        setShiftPreference('ANY');
+        setAllowDoubleLessons(true);
+        setPhotoFile(null);
+        setPhotoPreview(null);
+        setErrorMessage(null);
+        setLoading(false);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, teacherToEdit]);
 
   // Clean up object URL when component unmounts or preview changes
   useEffect(() => {
@@ -169,11 +191,17 @@ export const NewTeacherModal: React.FC<NewTeacherModalProps> = ({
         formData.append('photo', photoFile);
       }
 
-      const newTeacher = await api.createTeacher(formData);
-      onTeacherCreated(newTeacher);
+      if (isEditing && teacherToEdit) {
+        const updated = await api.updateTeacher(teacherToEdit.id, formData);
+        if (onTeacherUpdated) onTeacherUpdated(updated);
+        if (onTeacherCreated) onTeacherCreated(updated);
+      } else {
+        const newTeacher = await api.createTeacher(formData);
+        if (onTeacherCreated) onTeacherCreated(newTeacher);
+      }
       onClose();
     } catch (err: any) {
-      setErrorMessage(err.message || 'Erro ao cadastrar professor');
+      setErrorMessage(err.message || (isEditing ? 'Erro ao atualizar professor' : 'Erro ao cadastrar professor'));
     } finally {
       setLoading(false);
     }
@@ -190,11 +218,17 @@ export const NewTeacherModal: React.FC<NewTeacherModalProps> = ({
         <div className="px-6 py-4 bg-gradient-to-r from-indigo-50 to-white border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
-              <UserPlus className="w-5 h-5" />
+              {isEditing ? <Pencil className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-900">Novo Professor</h2>
-              <p className="text-xs text-slate-500">Cadastre um docente para alocação e grade de horários.</p>
+              <h2 className="text-base font-bold text-slate-900">
+                {isEditing ? 'Editar Professor' : 'Novo Professor'}
+              </h2>
+              <p className="text-xs text-slate-500">
+                {isEditing
+                  ? 'Atualize os dados cadastrais e parâmetros de carga horária.'
+                  : 'Cadastre um docente para alocação e grade de horários.'}
+              </p>
             </div>
           </div>
           <button
@@ -494,12 +528,12 @@ export const NewTeacherModal: React.FC<NewTeacherModalProps> = ({
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Cadastrando...</span>
+                  <span>{isEditing ? 'Salvando...' : 'Cadastrando...'}</span>
                 </>
               ) : (
                 <>
-                  <UserPlus className="w-4 h-4" />
-                  <span>Cadastrar Professor</span>
+                  {isEditing ? <Pencil className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+                  <span>{isEditing ? 'Salvar Alterações' : 'Cadastrar Professor'}</span>
                 </>
               )}
             </button>

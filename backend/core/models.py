@@ -209,4 +209,45 @@ class TimetableSlotAssignment(models.Model):
         unique_together = ('timetable_schedule', 'school_class', 'day_of_week', 'time_slot')
 
     def __str__(self):
-        return f"{self.school_class.name} - Dia {self.day_of_week} Slot {self.time_slot.name}: {self.subject.code} ({self.teacher.name})"
+        return f"{self.school_class.name} - Dia {self.day_of_week} Slot {self.time_slot.name}: {self.subject.code} ({self.teacher.name})"
+
+
+class UserProfile(models.Model):
+    ROLE_CHOICES = [
+        ('admin', 'Administrador Geral'),
+        ('coordinator', 'Coordenador Pedagógico'),
+        ('teacher', 'Professor / Docente'),
+    ]
+
+    user = models.OneToOneField('auth.User', related_name='profile', on_delete=models.CASCADE)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='coordinator')
+    avatar_initials = models.CharField(max_length=5, default="USR")
+    phone = models.CharField(max_length=30, blank=True, null=True)
+    department = models.CharField(max_length=120, default="Coordenação Pedagógica")
+
+    class Meta:
+        verbose_name = "Perfil de Usuário"
+        verbose_name_plural = "Perfis de Usuários"
+
+    def __str__(self):
+        return f"{self.user.username} ({self.get_role_display()})"
+
+
+class InstitutionSetting(models.Model):
+    institution_name = models.CharField(max_length=200, default="Centro Universitário Geraldo Di Biase — UGB")
+    active_school_year = models.CharField(max_length=50, default="2026.1")
+    academic_term = models.CharField(max_length=50, default="1º Semestre Letivo")
+    term_start_date = models.DateField(blank=True, null=True, verbose_name="Início do Período Letivo")
+    term_end_date = models.DateField(blank=True, null=True, verbose_name="Término do Período Letivo")
+    solver_status = models.CharField(max_length=50, default="ACTIVE") # ACTIVE, STANDBY, MAINTENANCE
+    solver_algorithm = models.CharField(max_length=150, default="Híbrido Construtivo + Busca Local + Propagação de Restrições")
+    auto_balance_shifts = models.BooleanField(default=True)
+    contact_email = models.EmailField(default="coordenacao@escola.edu.br")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Configuração Institucional"
+        verbose_name_plural = "Configurações Institucionais"
+
+    def __str__(self):
+        return f"{self.institution_name} ({self.active_school_year})"

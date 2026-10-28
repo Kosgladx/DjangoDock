@@ -176,6 +176,61 @@ Essa complexidade resultou na rejeição do MILP em favor de Meta-heurísticas d
 
 ---
 
+## Decisão 009 — Gestão do Ciclo de Vida de Dados: Blast Radius com Fricção Temporal no MVP vs. Soft Delete e Snapshots Imutáveis no Roadmap de Produção e TCC
+
+**Contexto:**
+No modelo relacional do Timetabling, a exclusão física (`Hard Delete`) associada ao `on_delete=models.CASCADE` nas entidades centrais (`Teacher`, `SchoolClass`, `Subject`) acarreta destruição em cadeia de registros dependentes. Por exemplo, ao excluir um docente:
+1. Suas disponibilidades semanais (`TeacherAvailability`) são expurgadas.
+2. A exigência de carga horária das turmas que ele lecionava (`CurriculumRequirement`) é eliminada, desfalecendo a matriz curricular da escola (a turma perde a matéria).
+3. Todas as alocações daquele docente em grades ativas e aprovadas (`TimetableSlotAssignment`) desaparecem silenciosamente.
+
+No domínio acadêmico e institucional, uma grade horária não é mero calendário efêmero: possui **validade jurídica e regulatória (LDB / MEC)**, constituindo a base comprobatória de diários de classe, cumprimento de dias letivos e histórico de carga horária para evolução funcional e previdência docente. Excluir o registro de um professor que lecionou no semestre anterior equivale a corromper retroativamente os registros históricos da instituição.
+
+Contudo, adotar o padrão de *Soft Delete* de forma prematura durante a fase de prototipação do MVP impõe severos custos técnicos de manutenção: necessidade de filtros sistemáticos (`is_active=True`) em todo o ecossistema de queries, risco de injeção acidental de registros zumbis no espaço de busca do motor de otimização (Solver), e conflitos em índices de unicidade relacional (como `unique=True` em e-mails e matrículas).
+
+---
+
+**Decisão tomada (Abordagem Evolutiva em Duas Fases):**
+
+### Fase 1: MVP / Sprints Iniciais (Salvaguarda de UX com Fricção Cognitiva)
+1. **Preservação da Integridade Relacional Enxuta:** O banco de dados mantém a estratégia de `CASCADE` nas entidades estritamente satélites (`TeacherAvailability`, `TimeSlot`) e integridade relacional estrita no backend, assegurando que o solver opere sempre sobre matrizes $T \times C \times S \times P$ densas e matematicamente íntegras, sem risco de ponteiros nulos (*dangling pointers*).
+2. **Modal de Raio de Destruição (*Blast Radius Modal*):** A camada de frontend é encarregada de neutralizar a ação impulsiva do operador. Qualquer tentativa de exclusão de entidades de negócio dispara um modal de auditoria prévia que exibe o inventário detalhado de danos colaterais (quantidade de requisitos curriculares e aulas em grade que serão vaporizadas).
+3. **Fricção Temporal Obrigatória (Timer de 10 Segundos):** Elimina-se a necessidade do operador digitar palavras de confirmação. Em seu lugar, introduz-se um bloqueio temporal estrito de 10 segundos com barra de progresso visual decrescente. O botão de ação destrutiva permanece inerte até o encerramento do cronômetro, forçando o operador a assimilar a extensão da perda de dados antes de confirmar.
+
+### Fase 2: Roadmap de Produção e Expansão para TCC (Arquitetura Completa de Soft Delete e Imutabilidade)
+Para o ambiente corporativo e expansão de TCC, a arquitetura migrará para o padrão formal de preservação histórica composto por 4 pilares:
+1. **Camada de Entidade Suave (*Soft Deletion*):**
+   - Inclusão dos atributos `is_active: bool = True` e `deleted_at: DateTimeField(null=True, blank=True)` nas entidades `Teacher`, `SchoolClass`, `Subject` e `Shift`.
+   - Implementação de um `ActiveManager(models.Manager)` como gerenciador padrão do Django ORM, garantindo que `Model.objects.all()` consulte apenas registros ativos por omissão, enquanto `Model.all_objects.all()` ou `Model.historical.all()` sejam expostos explicitamente para auditorias e telas de conciliação.
+2. **Índices Parciais e Resolução de Chaves Únicas (*Conditional Unique Constraints*):**
+   - Substituição de restrições simples `unique=True` em e-mails, códigos e matrículas por `models.UniqueConstraint(fields=['email'], condition=models.Q(is_active=True))`. Isso viabiliza que novos cadastros reutilizem códigos ou e-mails de profissionais desligados sem que ocorra colisão de chave primária/secundária com registros inativos.
+3. **Snapshots Imutáveis de Grades (*Frozen Timetable Snapshots*):**
+   - Implementação de ciclo de vida de status para a grade (`DRAFT` $\rightarrow$ `REVIEW` $\rightarrow$ `PUBLISHED` $\rightarrow$ `ARCHIVED`).
+   - Ao transicionar para `PUBLISHED`, a grade torna-se **imutável** (*frozen*): suas linhas de alocação deixam de depender da reatividade do professor no banco de dados. Mesmo que o docente venha a ser marcado como `is_active=False` ou desligado meses depois, a grade de 2026.1 mantém a referência e visualização exata de quem ministrou cada aula, garantindo total conformidade legal com o MEC e histórico da instituição.
+4. **Isolamento Estrito do Motor de Otimização (Solver):**
+   - O adaptador de dados do solver (`backend/core/solver_bridge.py`) aplicará filtros estritos em tempo de carregamento de instância:
+     ```python
+     teachers = Teacher.objects.filter(is_active=True).prefetch_related('availabilities')
+     curriculum = CurriculumRequirement.objects.filter(school_class__is_active=True, teacher__is_active=True)
+     ```
+   - Isso garante que a formulação matemática e o espaço de estados do solver não sofram poluição com variáveis binárias nulas associadas a professores inativos, preservando a performance computacional do algoritmo de busca exata e meta-heurística.
+
+---
+
+**Alternativas consideradas:**
+- *Implementar Soft Delete generalizado imediatamente no MVP:* Descartado. A complexidade de introduzir custom managers, tratar colisões de constraints e adaptar todos os testes automatizados neste momento desviaria o foco da equipe da entrega do núcleo do algoritmo de otimização (Solver).
+- *Hard Delete com confirmação simplificada (pop-up nativo `window.confirm`):* Descartado por ser ineficaz contra cliques automáticos/acidentais e omitir o volume real de dados dependentes que serão destruídos.
+- *Uso de `models.SET_NULL` em alocações de grade:* Descartado por gerar "aulas fantasmas" (aulas sem professor atribuído dentro da grade), que violam restrições rígidas ($H_1, H_2$) do solver e exigem tratamento complexo de assimetria no frontend.
+
+---
+
+**Trade-off aceito:**
+Aceita-se manter a exclusão física com `CASCADE` na base de dados durante o ciclo de desenvolvimento do MVP, mitigando o risco de perda acidental de dados unicamente na camada de experiência do usuário (UX) através do Modal de Blast Radius com timer de 10s. Registra-se este documento como especificação formal do roadmap de engenharia de software para o trabalho de conclusão e implantação institucional.
+
+**Status:** **decisão vigente (Fase 1 implementada; Fase 2 planejada para o roadmap).**
+
+---
+
 ## Como registrar novas decisões
 
 

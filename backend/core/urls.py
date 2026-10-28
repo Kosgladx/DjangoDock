@@ -4,7 +4,8 @@ from .views import (
     TeacherViewSet, ShiftViewSet, TimeSlotViewSet, SubjectViewSet,
     SchoolClassViewSet, CurriculumRequirementViewSet,
     ConstraintConfigViewSet, TimetableScheduleViewSet,
-    TimetableSlotAssignmentViewSet,
+    TimetableSlotAssignmentViewSet, UserAccountViewSet,
+    InstitutionSettingViewSet,
     run_solver, seed_sample_data
 )
 
@@ -18,7 +19,8 @@ router.register(r'curriculum', CurriculumRequirementViewSet)
 router.register(r'constraints', ConstraintConfigViewSet)
 router.register(r'timetables', TimetableScheduleViewSet)
 router.register(r'assignments', TimetableSlotAssignmentViewSet)
-
+router.register(r'users', UserAccountViewSet, basename='user')
+router.register(r'institution-settings', InstitutionSettingViewSet, basename='institution-setting')
 
 urlpatterns = [
     path('', include(router.urls)),
