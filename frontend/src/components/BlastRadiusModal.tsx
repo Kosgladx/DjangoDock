@@ -102,8 +102,9 @@ export const BlastRadiusModal: React.FC<BlastRadiusModalProps> = ({
 
         {/* Danos Colaterais Imediatos em Bullet Points */}
         <div className="space-y-2 pt-1">
-          <div className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
-            Danos Colaterais Imediatos:
+          <div className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide flex items-center space-x-1.5">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+            <span>Danos Colaterais Imediatos:</span>
           </div>
           <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
             {consequences.map((item, idx) => (
