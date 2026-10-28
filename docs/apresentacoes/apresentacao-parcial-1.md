@@ -1,199 +1,183 @@
-# 🎙️ Roteiro da Apresentação Parcial — Projeto Final (TCC)
+# Roteiro de Slides — Apresentação Parcial do TCC
 
-> **Documento Base:** Alinhado estritamente com o `TCC_Presentation_Blueprint_(2).pptx`  
-> **Tema do Projeto:** Sistema de Geração Automática de Horários Escolares (Timetabling)  
-> **Apresentadores / Autores:** Kauê Loreno Lopes & Pedro Henrique Dias  
-> **Tempo Alvo:** 15 a 18 minutos (com margem de segurança para perguntas)  
-> **Formato:** Otimizado para geração direta via IA de Slides (Gamma, Tome, Copilot) e leitura de orador.
-
----
-
-## 🧭 Visão Geral da Divisão de Apresentação
-
-| Bloco | Tópico do Blueprint | Responsável Principal | Duração Estimada |
-| :---: | :--- | :---: | :---: |
-| **01** | Capa e Identificação (Slide 1) | Kauê & Pedro | 1 min |
-| **02** | O Assunto & Contexto do Problema (Slide 2) | Pedro Henrique | 2 min |
-| **03** | Objetivos Geral e Específicos (Slide 3) | Pedro Henrique | 2 min |
-| **04** | Metodologia da Pesquisa & Engenharia (Slide 4) | Pedro Henrique | 2.5 min |
-| **05.1** | Resultados: Arquitetura & Decisões Técnicas (Slide 5) | Kauê Loreno | 3 min |
-| **05.2** | Resultados: Modelagem de Dados & Cenário Real (Slide 6) | Kauê Loreno | 2.5 min |
-| **05.3** | Resultados: O Core do Solver & Primeira Fatia (Slide 7) | Kauê Loreno | 3 min |
-| **06** | Conclusão, Limitações e Próximos Passos (Slide 8) | Kauê & Pedro | 2 min |
-| **Final** | Referências Bibliográficas & Agradecimento (Slide 9) | Kauê & Pedro | 1 min |
+> **Projeto:** Sistema de Geração Automática de Horários Escolares e Acadêmicos (TimeTabling)  
+> **Formato:** Estrutura limpa de tópicos para importação direta no **Canva (Magic Design / Doc para Apresentação)**, **Gamma** ou **PowerPoint**.  
+> **Autores:** Kauê Loreno Lopes & Pedro Henrique Dias  
+> **Orientador:** Prof. [Nome do Orientador]  
+> **Curso:** Engenharia de Software — Faculdade de Computação  
 
 ---
 
-## 📑 Roteiro Slide a Slide
+### [Slide 1/10] Capa Institucional
 
----
-
-### [Slide 1/9] Capa / Apresentação Institucional
-
-* **Título:** Sistema de Geração Automática de Horários Escolares (Timetabling)
-* **Subtítulo:** Uma Abordagem Heurística Aplicada à Otimização de Recursos no Ensino Médio e Técnico
+* **Título:** Sistema de Geração Automática de Horários Escolares e Acadêmicos (TimeTabling)
+* **Subtítulo:** Uma Abordagem Heurística Desacoplada sob o Paradigma *Curriculum-Based Course Timetabling*
 * **Autores:** Kauê Loreno Lopes & Pedro Henrique Dias
-* **Orientador(a):** Prof. [Nome do Orientador]
-* **Instituição:** [Nome da Faculdade] — Curso de Engenharia de Software
-* **Elemento Visual:** Layout clean, identidade visual do projeto (EduSchedule), brasão/logo discreto da faculdade.
-
-> 🗣️ **Notas do Orador (Kauê e Pedro):**  
-> *"Bom dia/boa noite a todos os presentes, aos membros da banca examinadora e ao nosso orientador. Eu sou o Kauê Loreno, este é o Pedro Henrique Dias, e hoje vamos apresentar o desenvolvimento parcial do nosso projeto de conclusão de curso: o Sistema de Geração Automática de Horários Escolares fundamentado em Pesquisa Operacional e Engenharia de Software."*
+* **Orientador:** Prof. [Nome do Orientador]
+* **Instituição:** Faculdade de Computação — Curso de Engenharia de Software
+* **Tags / Badges:** Pesquisa Operacional | Engenharia de Software | Otimização Combinatória
 
 ---
 
-### [Slide 2/9] O Assunto: Contexto e Problematização
+### [Slide 2/10] O Problema: Complexidade e Custo Social
 
-* **Título:** O Desafio do Timetabling Escolar
-* **Tópicos Visuais:**
-  * **O Processo Manual:** Coordenadores gastam semanas combinando horários manualmente no início de cada semestre.
-  * **A Explosão Combinatória:** Problema clássico de Pesquisa Operacional classificado como **NP-difícil**.
-  * **Custo do Erro:** Conflitos de agenda docente, janelas ociosas (*gaps*) e descontentamento pedagógico.
-  * **A Pergunta de Pesquisa:** *É possível automatizar a geração de grades escolares viáveis e de alta qualidade em tempo computacional previsível (<10s) para instituições de médio porte?*
-* **Elemento Visual Sugerido:** Ícone de quebra-cabeça / funil comparando o processo manual caótico versus o processamento computacional estruturado.
-
-> 🗣️ **Notas do Orador (Pedro Henrique):**  
-> *"Para situar a banca: montar a grade de horários é uma das tarefas mais estressantes de uma escola. Parece simples, mas matematicamente é um problema combinatorial de alta complexidade. Um coordenador precisa cruzar dezenas de professores, cada um com dias bloqueados, com matrizes curriculares e turmas. Manualmente, isso leva semanas e frequentemente resulta em choques de horário. Nossa pesquisa nasceu exatamente para responder: conseguimos resolver isso de forma automatizada, rápida e acessível para escolas de médio porte?"*
-
----
-
-### [Slide 3/9] Objetivos
-
-* **Título:** Objetivos da Pesquisa
-* **Tópicos Visuais:**
-  * **Objetivo Geral:**
-    * **Desenvolver** um sistema web integrado com motor de otimização matemática para geração autônoma de grades de horários sem choques.
-  * **Objetivos Específicos:**
-    * **Levantar** e formalizar restrições operacionais reais através de entrevistas com a coordenação escolar.
-    * **Modelar** o esquema relacional em PostgreSQL garantindo integridade e separação estrita entre demanda e alocação.
-    * **Formular** e calibrar o algoritmo de resolução comparando modelos exatos (MILP) e heurísticas construtivas.
-    * **Construir** uma aplicação web com API REST (Django) e interface moderna e reativa (React/Vite).
-    * **Validar** a eficácia do motor frente a instâncias reais de teste.
-* **Elemento Visual Sugerido:** Ícone de alvo com lista numerada de verbos no infinitivo destacados em negrito.
-
-> 🗣️ **Notas do Orador (Pedro Henrique):**  
-> *"Nosso objetivo geral é entregar uma solução prática de ponta a ponta: o algoritmo que resolve a matemática e a aplicação web que o coordenador realmente consegue usar. Para isso, os nossos passos específicos envolveram desde a entrevista com coordenadores reais para mapear as regras do jogo, a modelagem formal do banco de dados, a implementação do algoritmo de otimização e a validação quantitativa das soluções geradas."*
+* **Título:** O Desafio do Timetabling Escolar e Universitário
+* **O Processo Manual Tradicional:**
+  * Coordenadores gastam de 2 a 3 semanas no início de cada semestre montando grades manualmente;
+  * Processo propenso a falhas humanas, choques de turmas e subutilização da carga horária.
+* **A Barreira Matemática:**
+  * Problema formalmente provado como **NP-completo** (EVEN; ITAI; SHAMIR, 1976);
+  * Espaço de busca exponencial que supera $2^{262.500}$ combinações em instâncias médias;
+  * Força bruta e métodos determinísticos simples são computacionalmente inviáveis.
+* **A Relevância Social & Saúde Docente:**
+  * Grades fragmentadas geram janelas ociosas (*gaps*) entre períodos letivos;
+  * Causa direta de **estresse crônico, esgotamento mental (*burnout*) e absenteísmo docente** (TARDIF; LESSARD, 2014);
+  * Compromete a qualidade pedagógica e a retenção de professores.
+* **Métrica Alvo:** Redução de semanas de trabalho manual para resolução automatizada em **menos de 5 segundos**.
 
 ---
 
-### [Slide 4/9] Metodologia da Pesquisa
+### [Slide 3/10] Objetivos da Pesquisa
 
-* **Título:** Metodologia & Pipeline de Engenharia
-* **Tópicos Visuais:**
-  * **Classificação:** Pesquisa Aplicada, com abordagem quantitativa e qualitativa mista.
-  * **Procedimento:** Pesquisa-Ação integrada ao desenvolvimento ágil de software (*Vertical Slices*).
-  * **Pipeline de Execução (3 Fases):**
-    1. *Elicitação & Modelagem:* Entrevistas estruturadas, elaboração de DER e especificação de restrições fortes (*hard*) e fracas (*soft*).
-    2. *Desenvolvimento Incremental:* Monorepo conteinerizado, arquitetura de microsserviços conceituais e versionamento via GitHub Flow.
-    3. *Validação Experimental:* Benchmark de tempo de execução, ausência de choques e conformidade de grade.
-* **Elemento Visual Sugerido:** Diagrama em fluxo de 3 caixas horizontais conectadas por setas (Entrevista/Modelagem $\rightarrow$ Engenharia/Solver $\rightarrow$ Homologação/Benchmark).
-
-> 🗣️ **Notas do Orador (Pedro Henrique):**  
-> *"Nossa metodologia une o rigor científico à engenharia de software de ponta. Tratamos o trabalho como uma pesquisa aplicada e pesquisa-ação. Não ficamos apenas na teoria matemática: estruturamos um pipeline completo em fatias verticais testáveis. Levantamos os dados reais de uma escola técnica com cerca de 50 docentes, desenhamos o modelo de dados e adotamos o GitHub Flow com homologação contínua para validar cada módulo desenvolvido."*
+* **Título:** Objetivos do Trabalho
+* **Objetivo Geral:**
+  * Desenvolver e validar uma aplicação web com motor de otimização combinatória para resolução automática do problema de horários baseado em currículo (*CB-CTT*), garantindo zero violações de restrições rígidas em tempo determinístico.
+* **Objetivos Específicos:**
+  * **Elicitar** restrições operacionais e regras de negócio com a coordenação pedagógica (SOMMERVILLE, 2015);
+  * **Modelar** esquema relacional no PostgreSQL com separação entre Demanda Curricular e Alocação Efetiva (ADR 006);
+  * **Implementar** motor algorítmico em memória RAM baseado em heurísticas construtivas de saturação (BRÉLAZ, 1979; CARTER et al., 1996);
+  * **Isolar** a lógica de negócio sob o padrão *Clean Architecture* e padrão *Strategy* (MARTIN, 2017; GAMMA et al., 1994);
+  * **Disponibilizar** a aplicação conteinerizada na nuvem Microsoft Azure para homologação dos usuários.
 
 ---
 
-### [Slide 5/9] Resultados: Arquitetura & Decisão Tecnológica Crítica
+### [Slide 4/10] Metodologia & Pipeline de Engenharia
 
-* **Título:** Resultados (1/3) — Arquitetura e Decisão de Solver (ADR 004)
-* **Tópicos Visuais:**
-  * **Pivô Tecnológico Fundamental:**
-    * *Modelo Inicial (MILP / Branch-and-Bound):* Espaço de estados ultrapassava $2^{262.500}$ combinações; risco real de estourar a memória RAM e tempo imprevisível de resposta na nuvem.
-    * *Solução Adotada (Meta-heurística Construtiva Gulosa + Reparação Local):* Resolução em tempo determinístico (< 5 segundos) com garantia de viabilidade física.
-  * **Arquitetura Monorepo Limpo:**
-    * *Core Matemático:* Motor em Python puro desacoplado do banco de dados (alta velocidade em memória RAM).
-    * *Backend:* Django REST Framework operando com persistência transacional atômica.
-    * *Frontend:* React 18, TypeScript e Vite com feedback visual dinâmico.
-* **Elemento Visual Sugerido:** Tabela comparativa ou diagrama de arquitetura em 3 blocos (Frontend $\leftrightarrow$ Django REST $\leftrightarrow$ Solver em Memória).
-
-> 🗣️ **Notas do Orador (Kauê Loreno):**  
-> *"Entrando agora nos resultados técnicos já consolidados. Um dos nossos maiores marcos de engenharia foi o registro da ADR 004 — a Decisão Arquitetural sobre o motor de otimização. Inicialmente, a literatura sugere Programação Linear Inteira (MILP). Porém, ao realizarmos a modelagem matemática sobre o cenário real, identificamos que a árvore de busca geraria uma explosão de estados que consumiria gigabytes de memória. Tomamos a decisão pragmática de migrar para uma heurística construtiva gulosa baseada em criticidade com reparação local. O resultado? O sistema encontra soluções viáveis em menos de 5 segundos, sem congelar o servidor."*
-
----
-
-### [Slide 6/9] Resultados: Modelagem Relacional & Cenário Real
-
-* **Título:** Resultados (2/3) — Modelagem de Dados & Carga de Teste
-* **Tópicos Visuais:**
-  * **Separação Semântica (ADR 006):**
-    * *Demanda Curricular:* A intenção pedagógica cadastrada pelo coordenador (ex: Matemática, 4 aulas/semana, Professor Carlos).
-    * *Alocação Efetiva:* O slot resolvido (Dia, Horário, Turma, Professor) com constraints de unicidade estritas.
-  * **Massa de Teste Real Provisionada (`seed_data.py`):**
-    * 1 Turno Matutino com 6 períodos letivos e intervalo pedagógico de 20 min.
-    * 12 Disciplinas escolares completas com identificadores e cores visuais.
-    * 11 Professores com tetos de carga e **275 restrições de disponibilidade cadastradas**.
-    * 2 Turmas do Ensino Médio com demandas curriculares completas.
-* **Elemento Visual Sugerido:** Print do terminal executando `python manage.py seed_data` ou miniatura do Diagrama Entidade-Relacionamento (DER).
-
-> 🗣️ **Notas do Orador (Kauê Loreno):**  
-> *"Para garantir que nossos testes fossem fidedignos, nós não usamos dados fictícios triviais. Modelamos um banco de dados relacional normalizado no PostgreSQL e criamos um mecanismo de seed idempotente. Nossa base já conta com 11 professores reais, turnos escolares e mais de 270 slots de disponibilidade mapeados — contemplando inclusive restrições complexas, como docentes que não podem lecionar às sextas-feiras ou após o intervalo. Isso nos dá a segurança de que o solver está sendo desafiado com a realidade de uma escola brasileira."*
+* **Título:** Metodologia de Desenvolvimento
+* **Classificação:** Pesquisa Aplicada com abordagem quantitativa e qualitativa mista.
+* **Procedimento:** Pesquisa-Ação orientada a **Fatias Verticais (*Vertical Slices*)**.
+* **Pipeline de Execução:**
+  * **Fase 1 — Elicitação & Modelagem Formal:**
+    * Entrevistas semiestruturadas com a gestão escolar;
+    * Definição formal de *Hard Constraints* (viabilidade lógica) e *Soft Constraints* (qualidade pedagógica) (SCHAERF, 1999);
+    * Catalogação de decisões arquiteturais via ADRs.
+  * **Fase 2 — Engenharia Incremental:**
+    * Monorepo desacoplado integrando Banco $\rightarrow$ API REST $\rightarrow$ Engine em RAM $\rightarrow$ Frontend SPA;
+    * Pipeline ágil com validação preventiva e paridade de ambientes.
+  * **Fase 3 — Validação Experimental & Benchmark:**
+    * Testes sobre massa de dados reais com 50 professores e 14 turmas;
+    * Mensuração de tempo de CPU, ausência de conflitos e persistência transacional.
 
 ---
 
-### [Slide 7/9] Resultados: O Core do Solver & Primeira Fatia Vertical
+### [Slide 5/10] Resultados: Arquitetura em 3 Camadas Desacopladas
 
-* **Título:** Resultados (3/3) — Desempenho do Motor de Otimização
-* **Tópicos Visuais:**
-  * **Garantia de Restrições Fortes (*Hard Constraints*):**
-    * $\mathbf{0}$ Choques de horário de turmas (uma turma nunca tem duas aulas simultâneas).
-    * $\mathbf{0}$ Choques de agenda docente (um professor nunca é alocado em duas turmas no mesmo período).
-    * **100% de respeito** aos dias e horários bloqueados declarados pelos docentes.
-  * **Heurística de Ordenação por Criticidade:**
-    * Aulas de professores com disponibilidade escassa e disciplinas com maior carga horária são alocadas prioritariamente.
-  * **Paridade de Ambientes (Docker Compose):**
-    * Homologação em PostgreSQL 16 conteinerizado e execução local instantânea em SQLite.
-* **Elemento Visual Sugerido:** Gráfico ou scorecard destacando: "Zero Conflitos | Tempo Médio < 3s | 100% Constraints Respeitadas" junto a um print da matriz da grade gerada.
-
-> 🗣️ **Notas do Orador (Kauê Loreno):**  
-> *"Aqui apresentamos o núcleo da nossa primeira fatia vertical: o algoritmo executa na memória RAM estruturando matrizes de slots por dia da semana. Ele ordena as disciplinas pelo grau de criticidade — ou seja, professores mais requisitados e matérias com maior carga horária são posicionados primeiro. Nos testes executados, o algoritmo atingiu 100% de sucesso nas restrições rígidas: zero conflitos entre turmas e zero professores duplicados, persistindo o resultado no banco com integridade transacional total."*
+* **Título:** Resultados (1/3) — Arquitetura de Software (ADR 001)
+* **Estrutura de Camadas:**
+  * **Camada 1 — Apresentação:** Frontend SPA em React 18, TypeScript e Vite;
+  * **Camada 2 — Aplicação:** Backend em Django REST Framework com autenticação, validação e persistência ORM;
+  * **Camada 3 — Motor (Solver Engine):** Núcleo algorítmico em memória RAM (`backend/solver/`) operando em Python puro.
+* **Vantagens de Engenharia:**
+  * **Clean Architecture (MARTIN, 2017):** O algoritmo de otimização independe de frameworks web e bancos de dados;
+  * **Padrão Strategy (GAMMA et al., 1994):** Interface padronizada que permite plugar novos motores de cálculo no futuro;
+  * **Eliminação de Gargalo de I/O:** Sem queries de banco dentro do loop combinatorial; cálculos executados a centenas de milhares de iterações por segundo na RAM.
 
 ---
 
-### [Slide 8/9] Conclusão, Limitações e Próximos Passos
+### [Slide 6/10] Resultados: Modelagem Relacional & Cenário Real
 
-* **Título:** Conclusão Parcial & Próximos Passos
-* **Tópicos Visuais:**
-  * **Conclusões Desta Etapa:**
-    * Viabilidade computacional do modelo comprovada: a abordagem heurística resolve o problema prático de médio porte com agilidade.
-    * A base arquitetural (Monorepo, Django, React, Docker) está consolidada e pronta para escala.
-  * **Limitações do Escopo Atual (ADR 005):**
-    * Gestão de salas físicas mantida fora do escopo inicial (foco restrito em tempo, professor e turma; sala fica como proposta de extensão futura).
-  * **Cronograma da Reta Final:**
-    * Concluir a integração visual interativa da matriz semanal no frontend React.
-    * Implementar métricas de penalidade para restrições fracas (*soft constraints* - ex: evitar janelas vagas na agenda do professor).
-    * Rodada final de testes de usabilidade com a coordenação.
-* **Elemento Visual Sugerido:** Linha do tempo gráfica com marcos: Concluído (Modelagem, Solver Core, Docker) $\rightarrow$ Em Andamento (Frontend Grid) $\rightarrow$ Próximo (Validação Final da Banca).
-
-> 🗣️ **Notas do Orador (Kauê e Pedro):**  
-> *(Pedro)* *"Respondendo à nossa pergunta de pesquisa: sim, é plenamente viável automatizar a geração com tempo de resposta quase instantâneo utilizando heurísticas bem calibradas. A arquitetura construída até aqui já elimina o maior gargalo das escolas."*  
-> *(Kauê)* *"Como próximos passos para a entrega final, estamos finalizando a experiência visual no React para que o coordenador possa ver a grade interativa com cores por disciplina e exportar os relatórios. O projeto segue rigorosamente dentro do cronograma previsto."*
+* **Título:** Resultados (2/3) — Modelagem Semântica (ADR 006)
+* **Segregação entre Intenção e Alocação:**
+  * **Demanda Curricular (`CurriculumRequirement`):** A intenção pedagógica do coordenador (Turma, Disciplina, Professor e Carga Horária Semanal);
+  * **Alocação Efetiva (`TimetableSlotAssignment`):** O resultado calculado pelo solver (Dia da Semana, Período Letivo, Professor e Turma).
+* **Benefício Direto:** Permite o **versionamento de grades** — a coordenação pode gerar múltiplos cenários alternativos (Versões A, B e C) para a mesma escola sem duplicar dados cadastrais.
+* **Cenário Real de Homologação (`seed_data.py`):**
+  * 14 Turmas Curriculares ativas;
+  * 50 Professores cadastrados;
+  * 275 Restrições de disponibilidade e bloqueios docentes cadastrados;
+  * Paridade total entre PostgreSQL 16 conteinerizado e SQLite local.
 
 ---
 
-### [Slide 9/9] Referências Bibliográficas & Agradecimento
+### [Slide 7/10] Resultados: Desempenho do Motor em Memória
 
-* **Título:** Referências & Agradecimento
-* **Tópicos Visuais:**
-  * **Principais Referências:**
-    * MICHALEWICZ, Z.; FOGEL, D. B. **How to Solve It: Modern Heuristics**. Springer-Verlag, 2004.
-    * HILLIER, F. S.; LIEBERMAN, G. J. **Introduction to Operations Research**. McGraw-Hill.
-    * MASSACHUSETTS INSTITUTE OF TECHNOLOGY (MIT). **Integer Programming and Combinatorial Optimization**. MIT OpenCourseWare.
-    * POWERCUBUS & URÂNIA: Softwares de referência de mercado para geração de horários escolares.
-    * GAMMA, E. et al. **Design Patterns: Elements of Reusable Object-Oriented Software**.
-  * **Agradecimento:**
-    * Agradecemos ao nosso orientador pelo suporte contínuo, à banca avaliadora pela presença e contribuições, e à faculdade pela oportunidade.
-  * **Abertura para Perguntas:**
-    * *Estamos abertos às perguntas e considerações da banca.*
-* **Elemento Visual Sugerido:** QR Code para o repositório GitHub do projeto e contatos (e-mail institucional / LinkedIn).
-
-> 🗣️ **Notas do Orador (Kauê e Pedro):**  
-> *"Gostaríamos de agradecer imensamente ao nosso orientador pelas diretrizes, à instituição e aos professores membros da banca pelo tempo e pelas avaliações que certamente enriquecerão o nosso trabalho. Deixamos aqui o acesso ao nosso repositório e estamos à inteira disposição para os questionamentos e considerações da banca. Muito obrigado!"*
+* **Título:** Resultados (3/3) — Validação da Primeira Fatia Vertical
+* **Métricas Obtidas nos Testes Experimentais:**
+  * **Tempo de Execução do Solver:** **0.08 segundos** na memória RAM (Meta: $\le 5.0\text{ s}$);
+  * **Choque de Professores (*Hard Constraint*):** **Zero (0)** conflitos ($100\%$ válido);
+  * **Choque de Turmas (*Hard Constraint*):** **Zero (0)** conflitos ($100\%$ válido);
+  * **Respeito à Indisponibilidade Docente:** **100%** de conformidade com os dias e horários bloqueados;
+  * **Persistência Transacional:** Gravação atômica íntegra no banco de dados (`transaction.atomic`).
+* **Princípio Algorítmico Aplicado:**
+  * Estrutura de dados `GridState` operando com tensores matriciais e *bitsets* de acesso instantâneo $O(1)$;
+  * Heurística construtiva com ordenação por criticidade baseada no princípio *Fail-First* (BRÉLAZ, 1979; CARTER et al., 1996).
 
 ---
 
-## 🎯 Dicas de Ouro para o Ensaio da Dupla (Blueprint Compliance)
+### [Slide 8/10] Conclusão Parcial & Próximos Passos
 
-1. **Numeração nos Slides:** Ao gerar no PowerPoint/Gamma, certifique-se de que o número do slide (ex: `1/9`, `2/9`...) apareça no rodapé. A banca anota o número do slide para fazer as perguntas!
-2. **Sem Blocos de Texto:** Mantenha os tópicos do slide concisos. Deixe a explicação técnica densa para a fala de vocês (o roteiro acima já tem tudo detalhado).
-3. **Divisão Harmônica:** Pedro assume o contexto acadêmico, o problema e a metodologia (fundamentação da pesquisa). Kauê assume os resultados técnicos, o solver e a arquitetura (engenharia de software). No encerramento, ambos concluem juntos.
-4. **Cronômetro Ligado:** Façam pelo menos dois ensaios cronometrando. A meta é cravar entre 14 e 16 minutos, deixando 4 minutos de folga caso o nervosismo acelere ou atrase a fala.
+* **Título:** Conclusões Desta Etapa & Roadmap Futuro
+* **Conclusões Consolidadas:**
+  * Comprovada a viabilidade do modelo CB-CTT sem dependência de solucionadores exatos lentos;
+  * A arquitetura desacoplada demonstrou alta performance e modularidade;
+  * O sistema opera de forma estável na nuvem com dados homologados.
+* **Próximos Passos de Desenvolvimento:**
+  * **Fase 2 de Otimização (Busca Local):** Implementação de trocas de vizinhança (*swap moves*) guiadas por *Simulated Annealing* (MICHALEWICZ; FOGEL, 2004) para **eliminar janelas vagas** na jornada dos professores (TARDIF; LESSARD, 2014);
+  * **Experiência Visual Interativa:** Conclusão da grade com filtros por professor e exportação para PDF/Excel;
+  * **Evolução Arquitetural:** Avaliação do CP-SAT (Google OR-Tools) como motor alternativo sob o padrão Strategy.
+
+---
+
+### [Slide 9/10] Referências Bibliográficas Fundamentais
+
+* **Título:** Referências Bibliográficas
+* BRÉLAZ, D. New methods to color the vertices of a graph. **Communications of the ACM**, 1979.
+* BURKE, E. K. et al. Initialization strategies and diversity in evolutionary timetabling. **Evolutionary Computation**, 1998.
+* CARTER, M. W. et al. Extreme-value and constructive heuristics for timetabling. **JORS**, 1996.
+* DI GASPERO, L. et al. The Curriculum-Based Course Timetabling Problem at ITC-2007. **Annals of OR**, 2012.
+* EVEN, S.; ITAI, A.; SHAMIR, A. On the complexity of timetable problems. **SIAM J. Comput.**, 1976.
+* GAMMA, E. et al. **Design Patterns: Elements of Reusable Object-Oriented Software**. Addison-Wesley, 1994.
+* KARP, R. M. Reducibility among Combinatorial Problems. **Plenum Press**, 1972.
+* LEWIS, R. A survey of metaheuristic-based techniques for university timetabling. **OR Spectrum**, 2008.
+* MARTIN, R. C. **Clean Architecture: A Craftsman's Guide to Software Structure**. Prentice Hall, 2017.
+* MICHALEWICZ, Z.; FOGEL, D. B. **How to Solve It: Modern Heuristics**. Springer, 2004.
+* SCHAERF, A. A survey of automated timetabling. **Artificial Intelligence Review**, 1999.
+* SOMMERVILLE, I. **Engenharia de Software**. 10. ed. Pearson, 2015.
+* TARDIF, M.; LESSARD, C. **O trabalho docente: elementos para uma teoria da docência**. Vozes, 2014.
+
+---
+
+### [Slide 10/10] Transição para a Demonstração Prática
+
+* **Título:** Demonstração Prática do Software
+* **Ambiente em Produção:** Nuvem Microsoft Azure
+* **Stack Homologada:** PostgreSQL 16 + Django REST Framework + Vite / React 18
+* **Fluxo da Demonstração ao Vivo:**
+  1. Cadastro e visualização de bloqueios de disponibilidade dos docentes;
+  2. Consulta de matrizes curriculares ativas por turma;
+  3. **Execução síncrona do Solver de Otimização em tempo real**;
+  4. Renderização imediata da grade semanal gerada com zero choques de horários.
+* **Ação:** *Transição para o ambiente web em produção.*
+
+---
+
+### [Slide Final] Agradecimentos & Considerações da Banca
+
+* **Título:** Agradecimentos
+* **Integrantes:** Kauê Loreno Lopes & Pedro Henrique Dias
+* **Agradecimentos:** Ao Orientador, à Faculdade de Computação e aos membros da Banca Examinadora.
+* **Acesso ao Projeto:** [Link / QR Code para Repositório GitHub]
+* **Status:** *Abertura para perguntas e considerações da banca examinadora.*
+
+---
+
+## 🛡️ Slides de Apêndice / Backup (Plano de Contingência)
+
+### [Slide Backup 1] Cadastro de Indisponibilidade Docente
+* Interface web do módulo de declaração de bloqueios semanais pelo professor.
+
+### [Slide Backup 2] Matriz Semanal Resolvida pelo Solver
+* Visualização da grade semanal completa gerada para a turma com distinção de cores por matéria.
+
+### [Slide Backup 3] Registro de Execução em Terminal (0.08s)
+* Log do backend comprovando a resolução e persistência transacional em milissegundos.
