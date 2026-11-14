@@ -10,5 +10,6 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
+RUN sed -i 's/\r$//' /code/entrypoint.prod.sh && chmod +x /code/entrypoint.prod.sh
 
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

@@ -75,3 +75,17 @@ drafts/
 # Sincronização e conflitos do OneDrive / Windows
 *(*).*
 *(*)*
+
+# Terraform & Deploy Artifacts
+.terraform/
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+*.tfvars.json
+deploy_bundle.tar.gz
+backend/staticfiles/
+terraform/id_rsa
+terraform/id_rsa.pub
