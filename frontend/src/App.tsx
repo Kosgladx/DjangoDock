@@ -108,15 +108,15 @@ export function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center space-y-3">
-        <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+      <div className="min-h-screen bg-canvas text-ink flex flex-col items-center justify-center space-y-3 px-4">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
         <p className="text-xs font-bold text-slate-600">Carregando Sistema EduSchedule AI...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-canvas text-ink flex flex-col">
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -128,7 +128,7 @@ export function App() {
         onLogout={handleLogout}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-5 sm:py-6">
         {activeTab === 'grid' && (
           <TimetablePage
             schedule={schedule}

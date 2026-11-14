@@ -1,22 +1,248 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
+
+/* ==========================================================================
+   Design System UI — EduSchedule AI (UGB SaaS Style Guide)
+   Referência: frontend/DesignSystemUI.png
+   Tipografia: Satoshi (Light 300, Regular 400, Medium 500, Bold 700, Black 900)
+   Paleta: Primary #5A81FA | Secondary #2B308A | Terciary #CEDEFF
+           Text #1F1F1F | Background #F8F9FD
+   ========================================================================== */
+
+:root {
+  /* Core Brand Palette */
+  --ds-primary: #5A81FA;
+  --ds-primary-hover: #466EEB;
+  --ds-primary-active: #375ED8;
+  --ds-secondary: #2B308A;
+  --ds-secondary-hover: #21256E;
+  --ds-tertiary: #CEDEFF;
+  --ds-tertiary-soft: #EEF3FF;
+
+  /* Neutrals & Surfaces */
+  --ds-text: #1F1F1F;
+  --ds-text-muted: #5C6070;
+  --ds-text-subtle: #8A8FA3;
+  --ds-background: #F8F9FD;
+  --ds-surface: #FFFFFF;
+  --ds-surface-muted: #F2F5FC;
+  --ds-border: #DCE4F7;
+  --ds-border-strong: #C5D3F5;
+
+  /* Typography */
+  --ds-font-sans: 'Satoshi', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Elevation & Shape */
+  --ds-radius-card: 1rem;
+  --ds-radius-control: 0.75rem;
+  --ds-shadow-card: 0 1px 3px 0 rgba(43, 48, 138, 0.05), 0 1px 2px -1px rgba(43, 48, 138, 0.04);
+  --ds-shadow-elevated: 0 16px 36px -10px rgba(43, 48, 138, 0.16);
+}
+
+@theme {
+  /* Typography */
+  --font-sans: 'Satoshi', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Semantic Design System Tokens */
+  --color-primary: #5A81FA;
+  --color-primary-hover: #466EEB;
+  --color-secondary: #2B308A;
+  --color-tertiary: #CEDEFF;
+  --color-ink: #1F1F1F;
+  --color-canvas: #F8F9FD;
+
+  /* Harmonized Tailwind Scale Overrides for Global Consistency */
+  --color-indigo-50: #EEF3FF;
+  --color-indigo-100: #CEDEFF;
+  --color-indigo-200: #B3CBFF;
+  --color-indigo-300: #8EADFF;
+  --color-indigo-400: #7396FC;
+  --color-indigo-500: #5A81FA;
+  --color-indigo-600: #5A81FA;
+  --color-indigo-700: #466EEB;
+  --color-indigo-800: #2B308A;
+  --color-indigo-900: #2B308A;
+  --color-indigo-950: #1B1F60;
+
+  --color-purple-50: #EEF3FF;
+  --color-purple-100: #CEDEFF;
+  --color-purple-200: #B3CBFF;
+  --color-purple-300: #8EADFF;
+  --color-purple-400: #7396FC;
+  --color-purple-500: #3E45A3;
+  --color-purple-600: #2B308A;
+  --color-purple-700: #21256E;
+  --color-purple-800: #1B1F60;
+  --color-purple-900: #16194D;
+  --color-purple-950: #10123A;
+
+  --color-slate-50: #F8F9FD;
+  --color-slate-100: #EEF3FF;
+  --color-slate-200: #DCE4F7;
+  --color-slate-300: #C5D3F5;
+  --color-slate-400: #8A8FA3;
+  --color-slate-500: #5C6070;
+  --color-slate-600: #444857;
+  --color-slate-700: #313440;
+  --color-slate-800: #252730;
+  --color-slate-900: #1F1F1F;
+  --color-slate-950: #141418;
+}
 
 @layer base {
+  html {
+    font-family: var(--ds-font-sans);
+    background-color: var(--ds-background);
+    color: var(--ds-text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   body {
-    background-color: #f8fafc;
-    color: #0f172a;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: var(--ds-background);
+    color: var(--ds-text);
+    font-family: var(--ds-font-sans);
+    font-weight: 400;
+    line-height: 1.5;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--ds-text);
+    font-family: var(--ds-font-sans);
+    letter-spacing: -0.015em;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  input, select, textarea {
+    font-family: var(--ds-font-sans);
   }
 }
 
-/* Custom smooth scrollbar */
+@layer components {
+  .ds-card {
+    background-color: var(--ds-surface);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-card);
+    box-shadow: var(--ds-shadow-card);
+  }
+
+  .ds-btn-primary {
+    background-color: var(--ds-primary);
+    color: #FFFFFF;
+    font-weight: 700;
+    border-radius: var(--ds-radius-control);
+    transition: background-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+    box-shadow: 0 4px 14px -2px rgba(90, 129, 250, 0.35);
+  }
+
+  .ds-btn-primary:hover:not(:disabled) {
+    background-color: var(--ds-primary-hover);
+  }
+
+  .ds-btn-primary:active:not(:disabled) {
+    background-color: var(--ds-primary-active);
+  }
+
+  .ds-btn-secondary {
+    background-color: var(--ds-secondary);
+    color: #FFFFFF;
+    font-weight: 700;
+    border-radius: var(--ds-radius-control);
+    transition: background-color 150ms ease, box-shadow 150ms ease;
+  }
+
+  .ds-btn-secondary:hover:not(:disabled) {
+    background-color: var(--ds-secondary-hover);
+  }
+
+  .ds-btn-tertiary {
+    background-color: var(--ds-tertiary);
+    color: var(--ds-secondary);
+    font-weight: 700;
+    border-radius: var(--ds-radius-control);
+    border: 1px solid var(--ds-border-strong);
+    transition: background-color 150ms ease, border-color 150ms ease;
+  }
+
+  .ds-btn-tertiary:hover:not(:disabled) {
+    background-color: #BDD2FF;
+  }
+
+  .ds-input {
+    background-color: var(--ds-background);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-control);
+    color: var(--ds-text);
+    transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+  }
+
+  .ds-input:focus {
+    outline: none;
+    background-color: var(--ds-surface);
+    border-color: var(--ds-primary);
+    box-shadow: 0 0 0 3px rgba(90, 129, 250, 0.22);
+  }
+
+  .ds-badge-primary {
+    background-color: var(--ds-tertiary-soft);
+    color: var(--ds-secondary);
+    border: 1px solid var(--ds-tertiary);
+    font-weight: 700;
+  }
+
+  .ds-modal-backdrop {
+    background-color: rgba(27, 31, 96, 0.45);
+    backdrop-filter: blur(4px);
+  }
+
+  .ds-modal-panel {
+    background-color: var(--ds-surface);
+    border: 1px solid var(--ds-border);
+    border-radius: 1.25rem;
+    box-shadow: var(--ds-shadow-elevated);
+  }
+
+  .ds-logo-marquee {
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+    mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  }
+
+  .ds-logo-track {
+    display: flex;
+    width: max-content;
+    animation: ds-marquee 20s linear infinite;
+  }
+
+  .ds-logo-marquee:hover .ds-logo-track {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes ds-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* Custom smooth scrollbar aligned with Design System */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--ds-background);
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--ds-tertiary);
   border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ds-primary);
 }

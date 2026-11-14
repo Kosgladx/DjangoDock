@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import {
-  Calendar, Lock, Mail, Eye, EyeOff, LogIn, Sparkles, ArrowRight
-} from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
+import { MeshGradient } from '@paper-design/shaders-react';
+import logoIpsumUrl from '../assets/logoIpsum.svg';
 
 export interface UserSession {
   name: string;
@@ -63,9 +63,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
     // Simulate fast authenticated login
     setTimeout(() => {
-      const matchingAccount = DEMO_ACCOUNTS.find(a => a.email.toLowerCase() === email.toLowerCase().trim());
+      const matchingAccount = DEMO_ACCOUNTS.find(
+        (a) => a.email.toLowerCase() === email.toLowerCase().trim()
+      );
       const user: UserSession = matchingAccount || {
-        name: email.split('@')[0].replace('.', ' ').replace(/^./, c => c.toUpperCase()),
+        name: email
+          .split('@')[0]
+          .replace('.', ' ')
+          .replace(/^./, (c) => c.toUpperCase()),
         email: email.trim(),
         role: 'coordinator',
         roleLabel: 'Coordenador Pedagógico',
@@ -81,170 +86,207 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     }, 450);
   };
 
-  const handleQuickLogin = (account: UserSession) => {
-    setEmail(account.email);
-    setPassword('123456');
-    setLoading(true);
-    setTimeout(() => {
-      if (rememberMe) {
-        localStorage.setItem('eduschedule_user', JSON.stringify(account));
-      }
-      setLoading(false);
-      onLoginSuccess(account);
-    }, 300);
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Decorative Glow Orbs */}
-      <div className="absolute top-0 -left-40 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 -right-40 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-canvas text-ink flex flex-col lg:flex-row p-4 sm:p-5 lg:p-6 gap-6 lg:gap-8">
+      {/* Left Hero Panel */}
+      <section className="relative lg:w-[54%] min-h-[340px] sm:min-h-[420px] lg:min-h-0 rounded-2xl overflow-hidden bg-secondary flex flex-col justify-between p-7 sm:p-10 lg:p-12 shadow-xl">
+        {/* Paper Shaders MeshGradient Background */}
+        <MeshGradient
+          colors={['#f7f8fd', '#241d9a', '#5c83fa', '#9f50d3']}
+          distortion={0.8}
+          swirl={0.1}
+          grainMixer={0}
+          grainOverlay={0}
+          speed={1}
+          scale={1}
+          rotation={0}
+          offsetX={0}
+          offsetY={0}
+          className="absolute inset-0 w-full h-full pointer-events-none"
+        />
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 text-center px-4">
-        {/* Brand Header */}
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600 text-white shadow-xl shadow-indigo-500/30 mb-4 border border-indigo-400/30">
-          <Calendar className="w-8 h-8" />
+        {/* Subtle readability gradient */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-gradient-to-b from-secondary/40 via-secondary/10 to-secondary/50"
+        />
+
+        {/* Top Headline */}
+        <div className="relative z-10 max-w-xl">
+          <p className="text-sm sm:text-base font-normal text-white/85 mb-3">
+            Você pode
+          </p>
+          <h1 className="text-2xl sm:text-3xl lg:text-[34px] font-medium text-white leading-[1.18] tracking-tight">
+            Resolver demandas de gestão de horários e salas escolares com a praticidade de um único clique.
+          </h1>
         </div>
-        <h1 className="text-2xl font-extrabold text-white tracking-tight">
-          EduSchedule AI
-        </h1>
-        <p className="mt-1 text-xs text-indigo-200 font-medium">
-          Sistema Inteligente de Resolução de Horários Escolares (Timetabling)
-        </p>
-      </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10 px-4">
-        <div className="bg-white/95 backdrop-blur-md py-8 px-6 shadow-2xl rounded-3xl border border-white/20 sm:px-10 space-y-6">
-          <div className="border-b border-slate-100 pb-4">
-            <h2 className="text-sm font-bold text-slate-900">Acesse sua Conta</h2>
-            <p className="text-xs text-slate-500">Entre com suas credenciais institucionais para gerenciar as grades.</p>
+        {/* Bottom Institutions Strip */}
+        <div className="relative z-10 pt-10 space-y-5">
+          <div className="flex items-center gap-4">
+            <span className="h-px flex-1 bg-white/35" />
+            <p className="text-xs sm:text-sm font-normal text-white/80 text-center whitespace-nowrap">
+              Instituições que escolheram praticidade
+            </p>
+            <span className="h-px flex-1 bg-white/35" />
           </div>
 
-          {errorMessage && (
-            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-medium">
-              {errorMessage}
-            </div>
-          )}
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                E-mail Institucional
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ex: coordenacao@escola.edu.br"
-                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium transition"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Senha de Acesso
-              </label>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-9 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium transition"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+          <div className="ds-logo-marquee w-full pb-1">
+            <div className="ds-logo-track items-center">
+              {[0, 1].map((groupIndex) => (
+                <div
+                  key={groupIndex}
+                  aria-hidden={groupIndex === 1}
+                  className="flex items-center shrink-0 gap-6 sm:gap-9 lg:gap-11 pr-6 sm:pr-9 lg:pr-11"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between text-xs">
-              <label className="flex items-center space-x-2 text-slate-600 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
-                />
-                <span>Lembrar meu acesso</span>
-              </label>
-
-              <button
-                type="button"
-                onClick={() => alert('Para redefinir sua senha, solicite suporte à administração escolar.')}
-                className="text-indigo-600 hover:text-indigo-700 font-semibold transition cursor-pointer"
-              >
-                Esqueci a senha
-              </button>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center space-x-2 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 transition cursor-pointer"
-            >
-              {loading ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <>
-                  <LogIn className="w-4 h-4" />
-                  <span>Entrar no Sistema</span>
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Quick Demo Access Buttons */}
-          <div className="pt-2 border-t border-slate-100">
-            <div className="flex items-center justify-between mb-2.5">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center space-x-1">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                <span>Acesso Rápido de Demonstração</span>
-              </span>
-              <span className="text-[10px] text-slate-400">1-clique</span>
-            </div>
-
-            <div className="space-y-1.5">
-              {DEMO_ACCOUNTS.map((account) => (
-                <button
-                  key={account.email}
-                  type="button"
-                  onClick={() => handleQuickLogin(account)}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 hover:border-indigo-300 bg-slate-50 hover:bg-indigo-50/50 flex items-center justify-between text-left transition group cursor-pointer"
-                >
-                  <div className="flex items-center space-x-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-[11px]">
-                      {account.avatarInitials}
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition">
-                        {account.name}
-                      </p>
-                      <p className="text-[10px] text-slate-500">{account.roleLabel}</p>
-                    </div>
-                  </div>
-                  <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600 transition group-hover:translate-x-0.5" />
-                </button>
+                  <img
+                    src={logoIpsumUrl}
+                    alt={groupIndex === 0 ? 'Logoipsum' : ''}
+                    className="h-4 sm:h-5 lg:h-6 w-auto shrink-0 opacity-95"
+                  />
+                  <img
+                    src={logoIpsumUrl}
+                    alt={groupIndex === 0 ? 'Logoipsum' : ''}
+                    className="h-4 sm:h-5 lg:h-6 w-auto shrink-0 opacity-95"
+                  />
+                  <img
+                    src={logoIpsumUrl}
+                    alt={groupIndex === 0 ? 'Logoipsum' : ''}
+                    className="h-4 sm:h-5 lg:h-6 w-auto shrink-0 opacity-95"
+                  />
+                  <img
+                    src={logoIpsumUrl}
+                    alt={groupIndex === 0 ? 'Logoipsum' : ''}
+                    className="h-4 sm:h-5 lg:h-6 w-auto shrink-0 opacity-95"
+                  />
+                </div>
               ))}
             </div>
           </div>
         </div>
+      </section>
 
-        {/* Footer info */}
-        <p className="text-center text-xs text-indigo-200/60 mt-6">
-          EduSchedule AI • Engenharia de Software & Timetabling Problem • 2026
-        </p>
-      </div>
+      {/* Right Login Form Panel */}
+      <section className="flex-1 flex items-center justify-center py-6 sm:py-10 px-2 sm:px-6">
+        <div className="w-full max-w-[400px] space-y-7">
+          <div>
+            <h2 className="text-2xl sm:text-[32px] font-medium text-ink tracking-tight leading-tight">
+              Bem vindo de volta!
+            </h2>
+            <p className="mt-1.5 text-sm text-slate-500 font-normal">
+              Acesse sua conta para continuar
+            </p>
+          </div>
+
+          {errorMessage && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-700 font-medium">
+              {errorMessage}
+            </div>
+          )}
+
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div>
+              <label
+                htmlFor="login-email"
+                className="block text-sm font-medium text-ink mb-2"
+              >
+                E-mail Institucional
+              </label>
+              <input
+                id="login-email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Digite seu e-mail institucional..."
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-ink placeholder:text-slate-400 placeholder:italic focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary transition"
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label
+                  htmlFor="login-password"
+                  className="block text-sm font-medium text-ink"
+                >
+                  Senha
+                </label>
+                <button
+                  type="button"
+                  onClick={() =>
+                    alert(
+                      'Para redefinir sua senha, solicite suporte à administração escolar.'
+                    )
+                  }
+                  className="text-xs font-medium text-primary hover:text-primary-hover transition cursor-pointer"
+                >
+                  Esqueci minha senha
+                </button>
+              </div>
+              <div className="relative">
+                <input
+                  id="login-password"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Digite sua senha de acesso..."
+                  className="w-full pl-3.5 pr-10 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-ink placeholder:text-slate-400 placeholder:italic focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <label className="inline-flex items-center gap-2.5 text-xs sm:text-sm text-slate-600 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary/30 cursor-pointer"
+              />
+              <span>Lembrar do meu acesso</span>
+            </label>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex items-center justify-center py-3 px-4 bg-primary hover:bg-primary-hover disabled:opacity-75 text-white rounded-lg text-sm font-medium shadow-sm transition cursor-pointer"
+            >
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <span>Acessar minha conta</span>
+              )}
+            </button>
+
+            <p className="text-center text-xs sm:text-sm text-slate-500 pt-1">
+              Não tem uma conta ?{' '}
+              <button
+                type="button"
+                onClick={() =>
+                  alert(
+                    'Para solicitar um novo cadastro, entre em contato com a administração escolar.'
+                  )
+                }
+                className="text-primary hover:text-primary-hover font-medium transition cursor-pointer"
+              >
+                Cadastre-se
+              </button>
+            </p>
+          </form>
+        </div>
+      </section>
     </div>
   );
 };
