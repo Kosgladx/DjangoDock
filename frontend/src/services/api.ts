@@ -4,7 +4,7 @@ import type {
   SystemUserAccount, InstitutionSettingsData
 } from '../types';
 
-const API_BASE = '/api';
+const API_BASE = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
 
 export async function getTeachers(): Promise<Teacher[]> {
   const res = await fetch(`${API_BASE}/teachers/`);

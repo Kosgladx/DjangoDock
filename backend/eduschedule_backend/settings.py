@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from urllib.parse import unquote, urlparse
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -14,11 +15,24 @@ if env_file.exists():
                 os.environ.setdefault(key.strip(), val.strip())
 
 # Configurações centrais do Django
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-eduschedule-timetabling-secret-key-2026')
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    os.environ.get('SECRET_KEY', 'django-insecure-eduschedule-timetabling-secret-key-2026'),
+)
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('true', '1', 't', 'yes')
 
 allowed_hosts_env = os.environ.get('DJANGO_ALLOWED_HOSTS', '*')
 ALLOWED_HOSTS = [h.strip() for h in allowed_hosts_env.split(',') if h.strip()] if allowed_hosts_env != '*' else ['*']
+render_external_hostname = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if render_external_hostname and ALLOWED_HOSTS != ['*'] and render_external_hostname not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(render_external_hostname)
+
+csrf_origins_env = os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS', '')
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in csrf_origins_env.split(',') if o.strip()]
+if render_external_hostname:
+    render_origin = f'https://{render_external_hostname}'
+    if render_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(render_origin)
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -40,6 +54,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -71,6 +86,7 @@ WSGI_APPLICATION = 'eduschedule_backend.wsgi.application'
 # ============================================================
 # Configuração de Banco de Dados Multi-Engine (PostgreSQL / SQLite / MySQL)
 # ============================================================
+DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
 DB_ENGINE = os.environ.get('DB_ENGINE', 'sqlite').lower()
 DB_NAME = os.environ.get('DB_NAME', 'timetabling')
 DB_USER = os.environ.get('DB_USER', 'postgres')
@@ -78,7 +94,21 @@ DB_PASSWORD = os.environ.get('DB_PASSWORD', 'postgres')
 DB_HOST = os.environ.get('DB_HOST', 'localhost')
 DB_PORT = os.environ.get('DB_PORT', '5432')
 
-if DB_ENGINE in ('postgresql', 'postgres'):
+if DATABASE_URL:
+    parsed_db = urlparse(DATABASE_URL)
+    db_config = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': unquote(parsed_db.path.lstrip('/')),
+        'USER': unquote(parsed_db.username or ''),
+        'PASSWORD': unquote(parsed_db.password or ''),
+        'HOST': parsed_db.hostname or 'localhost',
+        'PORT': str(parsed_db.port or 5432),
+        'CONN_MAX_AGE': 600,
+    }
+    if os.environ.get('DB_SSL_REQUIRE', 'False').lower() in ('true', '1', 't', 'yes'):
+        db_config['OPTIONS'] = {'sslmode': 'require'}
+    DATABASES = {'default': db_config}
+elif DB_ENGINE in ('postgresql', 'postgres'):
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -133,6 +163,15 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
+    },
+}
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
